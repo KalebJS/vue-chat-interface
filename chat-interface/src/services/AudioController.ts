@@ -16,6 +16,7 @@ export class AudioController {
     this.audioState = {
       isRecording: false,
       isPlaying: false,
+      isPaused: false,
       isSupported: false,
       hasPermission: false,
       error: undefined
@@ -255,17 +256,18 @@ export class AudioController {
       }
 
       this.currentUtterance.onstart = () => {
-        this.updateState({ isPlaying: true, error: undefined });
+        this.updateState({ isPlaying: true, isPaused: false, error: undefined });
       };
 
       this.currentUtterance.onend = () => {
-        this.updateState({ isPlaying: false });
+        this.updateState({ isPlaying: false, isPaused: false });
         this.currentUtterance = null;
       };
 
       this.currentUtterance.onerror = (event) => {
         this.updateState({ 
           isPlaying: false,
+          isPaused: false,
           error: `Text-to-speech error: ${event.error}`
         });
         this.currentUtterance = null;
@@ -288,6 +290,7 @@ export class AudioController {
       
       this.updateState({ 
         isPlaying: false,
+        isPaused: false,
         error: audioError.message
       });
       
@@ -303,14 +306,65 @@ export class AudioController {
 
     try {
       this.synthesis.cancel();
-      this.updateState({ isPlaying: false });
+      this.updateState({ isPlaying: false, isPaused: false });
       this.currentUtterance = null;
     } catch (error) {
       this.updateState({ 
         isPlaying: false,
+        isPaused: false,
         error: 'Failed to stop speech'
       });
     }
+  }
+
+  /**
+   * Pause current speech synthesis
+   */
+  pauseSpeaking(): void {
+    if (!this.synthesis || !this.currentUtterance || !this.audioState.isPlaying) {
+      return;
+    }
+
+    try {
+      this.synthesis.pause();
+      this.updateState({ isPlaying: false, isPaused: true });
+    } catch (error) {
+      this.updateState({ 
+        error: 'Failed to pause speech'
+      });
+    }
+  }
+
+  /**
+   * Resume paused speech synthesis
+   */
+  resumeSpeaking(): void {
+    if (!this.synthesis || !this.currentUtterance || !this.audioState.isPaused) {
+      return;
+    }
+
+    try {
+      this.synthesis.resume();
+      this.updateState({ isPlaying: true, isPaused: false, error: undefined });
+    } catch (error) {
+      this.updateState({ 
+        error: 'Failed to resume speech'
+      });
+    }
+  }
+
+  /**
+   * Check if speech synthesis is currently paused
+   */
+  isSpeechPaused(): boolean {
+    return this.synthesis ? this.synthesis.paused : false;
+  }
+
+  /**
+   * Check if speech synthesis is currently speaking
+   */
+  isSpeechSpeaking(): boolean {
+    return this.synthesis ? this.synthesis.speaking : false;
   }
 
   /**

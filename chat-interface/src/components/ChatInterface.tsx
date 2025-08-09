@@ -136,6 +136,59 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
     }
   };
 
+  const handlePlayAudio = async (text: string, voiceSettings?: any) => {
+    if (!audioControllerRef.current) {
+      updateError('Audio controller not initialized');
+      return;
+    }
+
+    try {
+      await audioControllerRef.current.speakText(text, voiceSettings);
+    } catch (error) {
+      console.error('Audio playback error:', error);
+      updateError(error instanceof Error ? error.message : 'Audio playback failed');
+    }
+  };
+
+  const handlePauseAudio = () => {
+    if (!audioControllerRef.current) {
+      return;
+    }
+
+    try {
+      audioControllerRef.current.pauseSpeaking();
+    } catch (error) {
+      console.error('Audio pause error:', error);
+      updateError(error instanceof Error ? error.message : 'Failed to pause audio');
+    }
+  };
+
+  const handleResumeAudio = () => {
+    if (!audioControllerRef.current) {
+      return;
+    }
+
+    try {
+      audioControllerRef.current.resumeSpeaking();
+    } catch (error) {
+      console.error('Audio resume error:', error);
+      updateError(error instanceof Error ? error.message : 'Failed to resume audio');
+    }
+  };
+
+  const handleStopAudio = () => {
+    if (!audioControllerRef.current) {
+      return;
+    }
+
+    try {
+      audioControllerRef.current.stopSpeaking();
+    } catch (error) {
+      console.error('Audio stop error:', error);
+      updateError(error instanceof Error ? error.message : 'Failed to stop audio');
+    }
+  };
+
   const handleScrollToTop = () => {
     // Handle loading more history when user scrolls to top
     // This could trigger loading older messages in a real implementation
@@ -164,6 +217,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
         messages={state.messages}
         isLoading={state.isLoading}
         autoScroll={state.settings.autoScroll}
+        audioState={state.audioState}
+        voiceSettings={state.settings.voiceSettings}
+        onPlayAudio={handlePlayAudio}
+        onPauseAudio={handlePauseAudio}
+        onResumeAudio={handleResumeAudio}
+        onStopAudio={handleStopAudio}
         onScrollToTop={handleScrollToTop}
       />
 

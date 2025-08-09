@@ -121,6 +121,7 @@ describe('AudioController', () => {
       expect(state.isSupported).toBe(true);
       expect(state.isRecording).toBe(false);
       expect(state.isPlaying).toBe(false);
+      expect(state.isPaused).toBe(false);
       expect(state.hasPermission).toBe(false);
     });
 
@@ -431,6 +432,77 @@ describe('AudioController', () => {
       await expect(controller.speakText('Hello')).rejects.toThrow(AudioError);
       
       controller.destroy();
+    });
+
+    it('should pause speech synthesis', async () => {
+      const utterance = { onstart: null, onend: null, onerror: null };
+      mockSpeechSynthesisUtterance.mockReturnValue(utterance);
+
+      await audioController.speakText('Hello world');
+      
+      // Simulate speech starting
+      if (utterance.onstart) {
+        utterance.onstart(new Event('start'));
+      }
+
+      // Pause the speech
+      audioController.pauseSpeaking();
+      
+      expect(mockSpeechSynthesis.pause).toHaveBeenCalled();
+      
+      const state = audioController.getState();
+      expect(state.isPlaying).toBe(false);
+      expect(state.isPaused).toBe(true);
+    });
+
+    it('should resume paused speech synthesis', async () => {
+      const utterance = { onstart: null, onend: null, onerror: null };
+      mockSpeechSynthesisUtterance.mockReturnValue(utterance);
+
+      await audioController.speakText('Hello world');
+      
+      // Simulate speech starting
+      if (utterance.onstart) {
+        utterance.onstart(new Event('start'));
+      }
+
+      // Pause the speech
+      audioController.pauseSpeaking();
+      
+      // Resume the speech
+      audioController.resumeSpeaking();
+      
+      expect(mockSpeechSynthesis.resume).toHaveBeenCalled();
+      
+      const state = audioController.getState();
+      expect(state.isPlaying).toBe(true);
+      expect(state.isPaused).toBe(false);
+    });
+
+    it('should not pause if not playing', () => {
+      audioController.pauseSpeaking();
+      expect(mockSpeechSynthesis.pause).not.toHaveBeenCalled();
+    });
+
+    it('should not resume if not paused', () => {
+      audioController.resumeSpeaking();
+      expect(mockSpeechSynthesis.resume).not.toHaveBeenCalled();
+    });
+
+    it('should check if speech is paused', async () => {
+      mockSpeechSynthesis.paused = true;
+      expect(audioController.isSpeechPaused()).toBe(true);
+      
+      mockSpeechSynthesis.paused = false;
+      expect(audioController.isSpeechPaused()).toBe(false);
+    });
+
+    it('should check if speech is speaking', async () => {
+      mockSpeechSynthesis.speaking = true;
+      expect(audioController.isSpeechSpeaking()).toBe(true);
+      
+      mockSpeechSynthesis.speaking = false;
+      expect(audioController.isSpeechSpeaking()).toBe(false);
     });
   });
 

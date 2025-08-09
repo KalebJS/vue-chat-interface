@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MessageItem } from '../components/MessageItem';
-import { Message, MessageStatus } from '../types';
+import { Message, MessageStatus, AudioState, VoiceSettings } from '../types';
 
 describe('MessageItem', () => {
   const mockUserMessage: Message = {
@@ -29,14 +29,41 @@ describe('MessageItem', () => {
     audioUrl: 'https://example.com/audio.mp3'
   };
 
+  const mockAudioState: AudioState = {
+    isRecording: false,
+    isPlaying: false,
+    isPaused: false,
+    isSupported: true,
+    hasPermission: true,
+    error: undefined
+  };
+
+  const mockVoiceSettings: VoiceSettings = {
+    rate: 1,
+    pitch: 1,
+    voice: 'Test Voice'
+  };
+
+  const mockAudioHandlers = {
+    onPlayAudio: vi.fn(),
+    onPauseAudio: vi.fn(),
+    onResumeAudio: vi.fn(),
+    onStopAudio: vi.fn()
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock console.log to avoid noise in tests
-    vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   it('renders user message correctly', () => {
-    render(<MessageItem message={mockUserMessage} />);
+    render(
+      <MessageItem 
+        message={mockUserMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
 
     expect(screen.getByText('Hello, how are you?')).toBeInTheDocument();
     expect(screen.getByText('You')).toBeInTheDocument();
@@ -45,7 +72,14 @@ describe('MessageItem', () => {
   });
 
   it('renders AI message correctly', () => {
-    render(<MessageItem message={mockAiMessage} />);
+    render(
+      <MessageItem 
+        message={mockAiMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
 
     expect(screen.getByText('I am doing well, thank you for asking!')).toBeInTheDocument();
     expect(screen.getByText('AI')).toBeInTheDocument();
@@ -54,7 +88,14 @@ describe('MessageItem', () => {
   });
 
   it('applies correct CSS classes for user message', () => {
-    const { container } = render(<MessageItem message={mockUserMessage} />);
+    const { container } = render(
+      <MessageItem 
+        message={mockUserMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
     const messageElement = container.firstChild;
 
     expect(messageElement).toHaveClass('message-item');
@@ -63,7 +104,14 @@ describe('MessageItem', () => {
   });
 
   it('applies correct CSS classes for AI message', () => {
-    const { container } = render(<MessageItem message={mockAiMessage} />);
+    const { container } = render(
+      <MessageItem 
+        message={mockAiMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
     const messageElement = container.firstChild;
 
     expect(messageElement).toHaveClass('message-item');
@@ -73,7 +121,13 @@ describe('MessageItem', () => {
 
   it('applies custom className', () => {
     const { container } = render(
-      <MessageItem message={mockUserMessage} className="custom-class" />
+      <MessageItem 
+        message={mockUserMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+        className="custom-class" 
+      />
     );
 
     expect(container.firstChild).toHaveClass('message-item', 'custom-class');
@@ -83,13 +137,34 @@ describe('MessageItem', () => {
     const sendingMessage = { ...mockUserMessage, status: MessageStatus.SENDING };
     const errorMessage = { ...mockUserMessage, status: MessageStatus.ERROR };
 
-    const { rerender } = render(<MessageItem message={sendingMessage} />);
+    const { rerender } = render(
+      <MessageItem 
+        message={sendingMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
     expect(screen.getByText('⏳')).toBeInTheDocument();
 
-    rerender(<MessageItem message={errorMessage} />);
+    rerender(
+      <MessageItem 
+        message={errorMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
     expect(screen.getByText('❌')).toBeInTheDocument();
 
-    rerender(<MessageItem message={mockUserMessage} />);
+    rerender(
+      <MessageItem 
+        message={mockUserMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
     expect(screen.getByText('✓')).toBeInTheDocument();
   });
 
@@ -105,36 +180,88 @@ describe('MessageItem', () => {
       timestamp: new Date('2023-01-01T15:45:00Z')
     };
 
-    const { rerender } = render(<MessageItem message={morningMessage} />);
+    const { rerender } = render(
+      <MessageItem 
+        message={morningMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
     expect(screen.getByText(/\d{1,2}:\d{2}\s?(AM|PM)/)).toBeInTheDocument();
 
-    rerender(<MessageItem message={afternoonMessage} />);
+    rerender(
+      <MessageItem 
+        message={afternoonMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
     expect(screen.getByText(/\d{1,2}:\d{2}\s?(AM|PM)/)).toBeInTheDocument();
   });
 
-  it('renders audio button when audioUrl is present', () => {
-    render(<MessageItem message={mockMessageWithAudio} />);
+  it('renders audio controls for AI messages', () => {
+    render(
+      <MessageItem 
+        message={mockAiMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
 
     const audioButton = screen.getByLabelText('Play audio');
     expect(audioButton).toBeInTheDocument();
     expect(screen.getByText('🔊 Play Audio')).toBeInTheDocument();
   });
 
-  it('does not render audio button when audioUrl is not present', () => {
-    render(<MessageItem message={mockUserMessage} />);
+  it('renders audio controls when audioUrl is present', () => {
+    render(
+      <MessageItem 
+        message={mockMessageWithAudio} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
+
+    const audioButton = screen.getByLabelText('Play audio');
+    expect(audioButton).toBeInTheDocument();
+    expect(screen.getByText('🔊 Play Audio')).toBeInTheDocument();
+  });
+
+  it('does not render audio controls for user messages without audioUrl', () => {
+    render(
+      <MessageItem 
+        message={mockUserMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
 
     expect(screen.queryByLabelText('Play audio')).not.toBeInTheDocument();
     expect(screen.queryByText('🔊 Play Audio')).not.toBeInTheDocument();
   });
 
-  it('handles audio button click', () => {
-    render(<MessageItem message={mockMessageWithAudio} />);
+  it('handles audio play button click', () => {
+    render(
+      <MessageItem 
+        message={mockAiMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
 
     const audioButton = screen.getByLabelText('Play audio');
     fireEvent.click(audioButton);
 
-    // Should log that audio playback is not implemented
-    expect(console.log).toHaveBeenCalledWith('Audio playback not yet implemented');
+    expect(mockAudioHandlers.onPlayAudio).toHaveBeenCalledWith(
+      mockAiMessage.text, 
+      mockVoiceSettings
+    );
   });
 
   it('displays message text with proper formatting', () => {
@@ -143,7 +270,14 @@ describe('MessageItem', () => {
       text: 'Line 1\nLine 2\nLine 3'
     };
 
-    render(<MessageItem message={multilineMessage} />);
+    render(
+      <MessageItem 
+        message={multilineMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
     expect(screen.getByText((content, element) => {
       return element?.textContent === 'Line 1\nLine 2\nLine 3';
     })).toBeInTheDocument();
@@ -155,7 +289,14 @@ describe('MessageItem', () => {
       text: 'This is a very long message that should wrap properly and not break the layout. '.repeat(10)
     };
 
-    render(<MessageItem message={longMessage} />);
+    render(
+      <MessageItem 
+        message={longMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
     // Just check that the message text element exists and contains part of the text
     const messageTextElement = document.querySelector('.message-text');
     expect(messageTextElement).toBeInTheDocument();
@@ -166,13 +307,34 @@ describe('MessageItem', () => {
     const sendingMessage = { ...mockUserMessage, status: MessageStatus.SENDING };
     const errorMessage = { ...mockUserMessage, status: MessageStatus.ERROR };
 
-    const { rerender, container } = render(<MessageItem message={sendingMessage} />);
+    const { rerender, container } = render(
+      <MessageItem 
+        message={sendingMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
     expect(container.firstChild).toHaveClass('status-sending');
 
-    rerender(<MessageItem message={errorMessage} />);
+    rerender(
+      <MessageItem 
+        message={errorMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
     expect(container.firstChild).toHaveClass('status-error');
 
-    rerender(<MessageItem message={mockUserMessage} />);
+    rerender(
+      <MessageItem 
+        message={mockUserMessage} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
+      />
+    );
     expect(container.firstChild).toHaveClass('status-sent');
   });
 });

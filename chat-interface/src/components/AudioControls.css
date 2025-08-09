@@ -1,0 +1,155 @@
+/* AudioControls.css - Audio playback controls styling */
+
+.audio-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.audio-control-button {
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.audio-control-button:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+.audio-control-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.audio-control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Play button specific styling */
+.play-button {
+  font-weight: 500;
+}
+
+.play-button:hover:not(:disabled) {
+  background: rgba(0, 123, 255, 0.1);
+  color: #007bff;
+}
+
+/* Stop button specific styling */
+.stop-button {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+.stop-button:hover:not(:disabled) {
+  background: rgba(220, 53, 69, 0.2);
+}
+
+/* User message audio controls */
+.message-user .audio-controls .audio-control-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.message-user .audio-controls .audio-control-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.message-user .audio-controls .play-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.message-user .audio-controls .stop-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffcccb;
+}
+
+.message-user .audio-controls .stop-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Error display */
+.audio-error {
+  font-size: 0.75rem;
+  color: #dc3545;
+  background: rgba(220, 53, 69, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.message-user .audio-error {
+  color: #ffcccb;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Unsupported state */
+.audio-controls.unsupported .audio-control-button {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Loading/playing state animations */
+.play-button:has-text("Playing...") {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .audio-controls {
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+  }
+
+  .audio-control-button {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .audio-error {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .audio-controls {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .audio-control-button {
+    padding: 0.3rem 0.45rem;
+    font-size: 0.7rem;
+  }
+
+  .audio-error {
+    width: 100%;
+    font-size: 0.65rem;
+    text-align: center;
+  }
+}

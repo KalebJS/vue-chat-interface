@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import type { Message } from '../types';
+import type { Message, AudioState, VoiceSettings } from '../types';
 import { MessageItem } from './MessageItem';
 import './MessageList.css';
 
@@ -7,6 +7,12 @@ interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
   autoScroll: boolean;
+  audioState: AudioState;
+  voiceSettings?: VoiceSettings;
+  onPlayAudio: (text: string, settings?: VoiceSettings) => void;
+  onPauseAudio: () => void;
+  onResumeAudio: () => void;
+  onStopAudio: () => void;
   className?: string;
   onScrollToTop?: () => void; // Callback for loading more history
 }
@@ -19,6 +25,12 @@ export const MessageList: React.FC<MessageListProps> = ({
   messages,
   isLoading,
   autoScroll,
+  audioState,
+  voiceSettings,
+  onPlayAudio,
+  onPauseAudio,
+  onResumeAudio,
+  onStopAudio,
   className = '',
   onScrollToTop
 }) => {
@@ -150,6 +162,12 @@ export const MessageList: React.FC<MessageListProps> = ({
               <MessageItem
                 key={message.id}
                 message={message}
+                audioState={audioState}
+                voiceSettings={voiceSettings}
+                onPlayAudio={onPlayAudio}
+                onPauseAudio={onPauseAudio}
+                onResumeAudio={onResumeAudio}
+                onStopAudio={onStopAudio}
               />
             ))}
             {isLoading && (

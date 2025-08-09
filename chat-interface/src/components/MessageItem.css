@@ -98,28 +98,7 @@
   border-top-color: rgba(255, 255, 255, 0.2);
 }
 
-.audio-play-button {
-  background: rgba(0, 0, 0, 0.1);
-  border: none;
-  border-radius: 6px;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.message-user .audio-play-button {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-.audio-play-button:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.message-user .audio-play-button:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
+/* Audio controls are now handled by AudioControls component */
 
 /* Status-specific styling */
 .status-sending .message-content {

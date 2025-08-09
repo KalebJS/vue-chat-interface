@@ -1,10 +1,17 @@
 import React from 'react';
-import type { Message } from '../types';
+import type { Message, AudioState, VoiceSettings } from '../types';
 import { MessageStatus } from '../types';
+import { AudioControls } from './AudioControls';
 import './MessageItem.css';
 
 interface MessageItemProps {
   message: Message;
+  audioState: AudioState;
+  voiceSettings?: VoiceSettings;
+  onPlayAudio: (text: string, settings?: VoiceSettings) => void;
+  onPauseAudio: () => void;
+  onResumeAudio: () => void;
+  onStopAudio: () => void;
   className?: string;
 }
 
@@ -12,7 +19,13 @@ interface MessageItemProps {
  * Individual message component with sender distinction and status indicators
  */
 export const MessageItem: React.FC<MessageItemProps> = ({ 
-  message, 
+  message,
+  audioState,
+  voiceSettings,
+  onPlayAudio,
+  onPauseAudio,
+  onResumeAudio,
+  onStopAudio,
   className = '' 
 }) => {
   const formatTime = (timestamp: Date) => {
@@ -59,18 +72,19 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         <div className="message-text">
           {message.text}
         </div>
-        {message.audioUrl && (
+        {/* Show audio controls for AI messages or if audioUrl exists */}
+        {(message.sender === 'ai' || message.audioUrl) && (
           <div className="message-audio">
-            <button 
-              className="audio-play-button"
-              onClick={() => {
-                // Audio playback will be implemented in a later task
-                console.log('Audio playback not yet implemented');
-              }}
-              aria-label="Play audio"
-            >
-              🔊 Play Audio
-            </button>
+            <AudioControls
+              text={message.text}
+              audioState={audioState}
+              voiceSettings={voiceSettings}
+              onPlay={onPlayAudio}
+              onPause={onPauseAudio}
+              onResume={onResumeAudio}
+              onStop={onStopAudio}
+              messageId={message.id}
+            />
           </div>
         )}
       </div>

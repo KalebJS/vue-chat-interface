@@ -315,6 +315,7 @@ describe('Type Definitions', () => {
         const audioState = {
           isRecording: false,
           isPlaying: false,
+          isPaused: false,
           isSupported: true,
           hasPermission: true
         };

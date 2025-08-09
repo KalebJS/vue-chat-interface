@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MessageList } from '../components/MessageList';
-import type { Message } from '../types';
+import type { Message, AudioState, VoiceSettings } from '../types';
 import { MessageStatus } from '../types';
 
 // Mock scrollIntoView
@@ -43,6 +43,28 @@ describe('MessageList', () => {
     }
   ];
 
+  const mockAudioState: AudioState = {
+    isRecording: false,
+    isPlaying: false,
+    isPaused: false,
+    isSupported: true,
+    hasPermission: true,
+    error: undefined
+  };
+
+  const mockVoiceSettings: VoiceSettings = {
+    rate: 1,
+    pitch: 1,
+    voice: 'Test Voice'
+  };
+
+  const mockAudioHandlers = {
+    onPlayAudio: vi.fn(),
+    onPauseAudio: vi.fn(),
+    onResumeAudio: vi.fn(),
+    onStopAudio: vi.fn()
+  };
+
   const mockOnScrollToTop = vi.fn();
 
   beforeEach(() => {
@@ -63,6 +85,9 @@ describe('MessageList', () => {
         messages={[]} 
         isLoading={false} 
         autoScroll={true}
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
         onScrollToTop={mockOnScrollToTop}
       />
     );
@@ -77,6 +102,9 @@ describe('MessageList', () => {
         messages={mockMessages} 
         isLoading={false} 
         autoScroll={true}
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
         onScrollToTop={mockOnScrollToTop}
       />
     );
@@ -91,6 +119,9 @@ describe('MessageList', () => {
         messages={mockMessages} 
         isLoading={true} 
         autoScroll={true}
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
         onScrollToTop={mockOnScrollToTop}
       />
     );
@@ -105,6 +136,9 @@ describe('MessageList', () => {
         messages={[]} 
         isLoading={false} 
         autoScroll={true} 
+        audioState={mockAudioState}
+        voiceSettings={mockVoiceSettings}
+        {...mockAudioHandlers}
         className="custom-class"
         onScrollToTop={mockOnScrollToTop}
       />

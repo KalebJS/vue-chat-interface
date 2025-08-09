@@ -68,7 +68,7 @@
   - Write component tests for recording interface
   - _Requirements: 2.1, 2.2, 2.3_
 
-- [ ] 10. Add text-to-speech functionality
+- [x] 10. Add text-to-speech functionality
   - Implement text-to-speech synthesis in AudioController
   - Create audio playback controls for AI responses
   - Add play/pause/stop controls for each message
