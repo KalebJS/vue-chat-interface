@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useStateManager } from '../hooks/useStateManager';
 import { MessageList } from './MessageList';
 import { InputArea } from './InputArea';
@@ -17,8 +17,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
     state,
     sendMessage,
     updateCurrentInput,
-    updateError
+    updateError,
+    initializeLangChain
   } = useStateManager();
+
+  // Initialize LangChain service on component mount
+  useEffect(() => {
+    const initialize = async () => {
+      if (state && !state.langChainState.isInitialized) {
+        try {
+          await initializeLangChain();
+        } catch (error) {
+          console.error('Failed to initialize LangChain:', error);
+          // Error is already handled in initializeLangChain
+        }
+      }
+    };
+
+    initialize();
+  }, [state?.langChainState.isInitialized, initializeLangChain]);
 
   if (!state) {
     return (
@@ -28,14 +45,34 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
     );
   }
 
+  // Show initialization loading state
+  if (!state.langChainState.isInitialized && state.isLoading) {
+    return (
+      <div className={`chat-interface loading ${className}`}>
+        <div className="loading-message">
+          <div className="loading-spinner">⏳</div>
+          <p>Initializing AI model...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleSubmit = async (message: string) => {
     if (!message.trim()) {
       return;
     }
 
+    // Check if LangChain is initialized
+    if (!state.langChainState.isInitialized) {
+      updateError('AI model not initialized. Please wait or refresh the page.');
+      return;
+    }
+
+    // Clear input immediately to prevent duplicate submissions
+    updateCurrentInput('');
+
     try {
       await sendMessage(message.trim());
-      updateCurrentInput('');
     } catch (error) {
       console.error('Failed to send message:', error);
       updateError(error instanceof Error ? error.message : 'Failed to send message');

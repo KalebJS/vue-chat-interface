@@ -5,6 +5,10 @@ import App from './App'
 describe('App', () => {
   it('renders without crashing', () => {
     render(<App />)
-    expect(screen.getByText(/Vite \+ React/i)).toBeInTheDocument()
+    // The app should render either the loading state or the chat interface
+    expect(
+      screen.getByText(/Initializing AI model/i) || 
+      screen.getByText(/AI Chat Interface/i)
+    ).toBeInTheDocument()
   })
 })

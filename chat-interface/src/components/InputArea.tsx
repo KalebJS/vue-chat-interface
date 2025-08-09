@@ -30,8 +30,9 @@ export const InputArea: React.FC<InputAreaProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = () => {
-    if (value.trim() && !isLoading) {
-      onSubmit(value);
+    const trimmedValue = value.trim();
+    if (trimmedValue && !isLoading) {
+      onSubmit(trimmedValue);
     }
   };
 

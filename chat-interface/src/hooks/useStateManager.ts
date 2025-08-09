@@ -126,16 +126,33 @@ export function useStateManager() {
       throw new Error('Services not initialized');
     }
 
+    if (!langChainServiceRef.current.isInitialized()) {
+      throw new Error('LangChain service not initialized');
+    }
+
+    let userMessageId: string | null = null;
+
     try {
       updateLoadingState(true);
       updateError(undefined);
 
-      // Add user message
-      addMessage({
+      // Add user message with sending status
+      const userMessage = {
         text: message,
-        sender: 'user',
-        status: 'sent' as const
-      });
+        sender: 'user' as const,
+        status: 'sending' as const
+      };
+      addMessage(userMessage);
+      
+      // Get the message ID for status updates
+      const currentState = stateManagerRef.current.getState();
+      const lastMessage = currentState.messages[currentState.messages.length - 1];
+      userMessageId = lastMessage?.id || null;
+
+      // Update user message to sent status
+      if (userMessageId) {
+        updateMessage(userMessageId, { status: 'sent' as const });
+      }
 
       // Send to LangChain and get response
       const response = await langChainServiceRef.current.sendMessage(message);
@@ -152,12 +169,18 @@ export function useStateManager() {
       updateLangChainState(langChainState);
 
     } catch (error) {
-      updateError(error instanceof Error ? error.message : 'Failed to send message');
+      // Update user message to error status if we have the ID
+      if (userMessageId) {
+        updateMessage(userMessageId, { status: 'error' as const });
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+      updateError(errorMessage);
       throw error;
     } finally {
       updateLoadingState(false);
     }
-  }, [updateLoadingState, updateError, addMessage, updateLangChainState]);
+  }, [updateLoadingState, updateError, addMessage, updateMessage, updateLangChainState]);
 
   const clearLangChainMemory = useCallback(async () => {
     if (!langChainServiceRef.current) {
