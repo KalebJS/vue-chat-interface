@@ -1,0 +1,334 @@
+import { 
+  AppState, 
+  Message, 
+  AudioState, 
+  LangChainState, 
+  AppSettings,
+  ModelProvider,
+  MemoryType,
+  ChainType,
+  MessageStatus,
+  LangChainConfig
+} from '../types';
+import { LangChainService } from './LangChainService';
+
+export type StateUpdateCallback = (state: AppState) => void;
+
+export class StateManager {
+  private state: AppState;
+  private callbacks: Set<StateUpdateCallback> = new Set();
+  private langChainService: LangChainService;
+  private storageKey = 'chat-interface-state';
+
+  constructor(langChainService: LangChainService) {
+    this.langChainService = langChainService;
+    this.state = this.getInitialState();
+    this.loadPersistedState();
+  }
+
+  /**
+   * Get the initial default state
+   */
+  private getInitialState(): AppState {
+    return {
+      messages: [],
+      currentInput: '',
+      isLoading: false,
+      audioState: {
+        isRecording: false,
+        isPlaying: false,
+        isSupported: false,
+        hasPermission: false,
+        error: undefined
+      },
+      langChainState: {
+        isInitialized: false,
+        currentModel: '',
+        conversationId: '',
+        tokenCount: 0,
+        memorySize: 0,
+        isStreaming: false
+      },
+      error: undefined,
+      settings: {
+        autoScroll: true,
+        audioEnabled: true,
+        voiceSettings: {
+          rate: 1.0,
+          pitch: 1.0,
+          voice: undefined
+        },
+        aiModel: {
+          model: {
+            provider: ModelProvider.OPENAI,
+            modelName: 'gpt-3.5-turbo',
+            temperature: 0.7,
+            maxTokens: 1000
+          },
+          memory: {
+            type: MemoryType.BUFFER,
+            maxTokenLimit: 2000,
+            returnMessages: true
+          },
+          chain: {
+            type: ChainType.CONVERSATION,
+            verbose: false
+          }
+        }
+      }
+    };
+  }
+
+  /**
+   * Get current application state
+   */
+  getState(): AppState {
+    return { ...this.state };
+  }
+
+  /**
+   * Update application state with partial updates
+   */
+  setState(updates: Partial<AppState>): void {
+    const previousState = { ...this.state };
+    this.state = { ...this.state, ...updates };
+    
+    // Sync with LangChain if needed
+    this.syncWithLangChain(previousState);
+    
+    // Persist state changes
+    this.persistState();
+    
+    // Notify subscribers
+    this.notifyCallbacks();
+  }
+
+  /**
+   * Update specific parts of the state
+   */
+  updateMessages(messages: Message[]): void {
+    this.setState({ messages });
+  }
+
+  updateCurrentInput(currentInput: string): void {
+    this.setState({ currentInput });
+  }
+
+  updateLoadingState(isLoading: boolean): void {
+    this.setState({ isLoading });
+  }
+
+  updateAudioState(audioState: Partial<AudioState>): void {
+    this.setState({ 
+      audioState: { ...this.state.audioState, ...audioState }
+    });
+  }
+
+  updateLangChainState(langChainState: Partial<LangChainState>): void {
+    this.setState({ 
+      langChainState: { ...this.state.langChainState, ...langChainState }
+    });
+  }
+
+  updateSettings(settings: Partial<AppSettings>): void {
+    this.setState({ 
+      settings: { ...this.state.settings, ...settings }
+    });
+  }
+
+  updateError(error: string | undefined): void {
+    this.setState({ error });
+  }
+
+  /**
+   * Add a new message to the conversation
+   */
+  addMessage(message: Omit<Message, 'id' | 'timestamp'>): void {
+    const newMessage: Message = {
+      ...message,
+      id: this.generateMessageId(),
+      timestamp: new Date()
+    };
+    
+    this.setState({ 
+      messages: [...this.state.messages, newMessage]
+    });
+  }
+
+  /**
+   * Update an existing message
+   */
+  updateMessage(messageId: string, updates: Partial<Message>): void {
+    const updatedMessages = this.state.messages.map(msg => 
+      msg.id === messageId ? { ...msg, ...updates } : msg
+    );
+    
+    this.setState({ messages: updatedMessages });
+  }
+
+  /**
+   * Clear all messages
+   */
+  clearMessages(): void {
+    this.setState({ messages: [] });
+  }
+
+  /**
+   * Subscribe to state changes
+   */
+  subscribe(callback: StateUpdateCallback): () => void {
+    this.callbacks.add(callback);
+    
+    // Return unsubscribe function
+    return () => {
+      this.callbacks.delete(callback);
+    };
+  }
+
+  /**
+   * Notify all subscribers of state changes
+   */
+  private notifyCallbacks(): void {
+    this.callbacks.forEach(callback => {
+      try {
+        callback(this.state);
+      } catch (error) {
+        console.error('Error in state update callback:', error);
+      }
+    });
+  }
+
+  /**
+   * Synchronize state with LangChain service
+   */
+  private syncWithLangChain(previousState: AppState): void {
+    // Update LangChain state from service
+    if (this.langChainService.isInitialized()) {
+      const langChainState = this.langChainService.getState();
+      if (JSON.stringify(langChainState) !== JSON.stringify(this.state.langChainState)) {
+        this.state.langChainState = langChainState;
+      }
+    }
+
+    // If AI model settings changed, update LangChain service
+    const modelConfigChanged = JSON.stringify(previousState.settings.aiModel.model) !== 
+                              JSON.stringify(this.state.settings.aiModel.model);
+    
+    if (modelConfigChanged && this.langChainService.isInitialized()) {
+      this.langChainService.updateModelConfig(this.state.settings.aiModel.model)
+        .catch(error => {
+          console.error('Failed to update LangChain model config:', error);
+          this.setState({ error: 'Failed to update AI model configuration' });
+        });
+    }
+  }
+
+  /**
+   * Load conversation history from LangChain service
+   */
+  async loadConversationHistory(): Promise<void> {
+    if (!this.langChainService.isInitialized()) {
+      return;
+    }
+
+    try {
+      const history = await this.langChainService.getConversationHistory();
+      this.setState({ messages: history });
+    } catch (error) {
+      console.error('Failed to load conversation history:', error);
+      this.setState({ error: 'Failed to load conversation history' });
+    }
+  }
+
+  /**
+   * Persist state to localStorage
+   */
+  private persistState(): void {
+    try {
+      const persistableState = {
+        messages: this.state.messages,
+        settings: this.state.settings,
+        // Don't persist temporary states like isLoading, currentInput, etc.
+      };
+      
+      localStorage.setItem(this.storageKey, JSON.stringify(persistableState));
+    } catch (error) {
+      console.error('Failed to persist state to localStorage:', error);
+    }
+  }
+
+  /**
+   * Load persisted state from localStorage
+   */
+  private loadPersistedState(): void {
+    try {
+      const persistedData = localStorage.getItem(this.storageKey);
+      if (persistedData) {
+        const parsed = JSON.parse(persistedData);
+        
+        // Validate and merge persisted state
+        if (parsed.messages && Array.isArray(parsed.messages)) {
+          this.state.messages = parsed.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp) // Convert timestamp back to Date
+          }));
+        }
+        
+        if (parsed.settings) {
+          this.state.settings = { ...this.state.settings, ...parsed.settings };
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load persisted state from localStorage:', error);
+      // Continue with default state if loading fails
+    }
+  }
+
+  /**
+   * Clear persisted state from localStorage
+   */
+  clearPersistedState(): void {
+    try {
+      localStorage.removeItem(this.storageKey);
+    } catch (error) {
+      console.error('Failed to clear persisted state:', error);
+    }
+  }
+
+  /**
+   * Reset state to initial values
+   */
+  resetState(): void {
+    this.state = this.getInitialState();
+    this.clearPersistedState();
+    this.notifyCallbacks();
+  }
+
+  /**
+   * Generate a unique message ID
+   */
+  private generateMessageId(): string {
+    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Get state for debugging purposes
+   */
+  getDebugInfo(): object {
+    return {
+      stateSize: JSON.stringify(this.state).length,
+      messageCount: this.state.messages.length,
+      subscriberCount: this.callbacks.size,
+      langChainInitialized: this.langChainService.isInitialized(),
+      persistedStateExists: !!localStorage.getItem(this.storageKey)
+    };
+  }
+
+  /**
+   * Dispose of resources and cleanup
+   */
+  dispose(): void {
+    this.callbacks.clear();
+    this.persistState(); // Final persist before cleanup
+  }
+}

@@ -1,0 +1,272 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { AppState, Message, AudioState, LangChainState, AppSettings } from '../types';
+import { StateManager } from '../services/StateManager';
+import { LangChainService } from '../services/LangChainService';
+
+/**
+ * React hook for managing application state with StateManager integration
+ */
+export function useStateManager() {
+  const stateManagerRef = useRef<StateManager | null>(null);
+  const langChainServiceRef = useRef<LangChainService | null>(null);
+  const [state, setState] = useState<AppState | null>(null);
+
+  // Initialize services on first render
+  useEffect(() => {
+    if (!langChainServiceRef.current) {
+      langChainServiceRef.current = new LangChainService();
+    }
+    
+    if (!stateManagerRef.current) {
+      stateManagerRef.current = new StateManager(langChainServiceRef.current);
+      setState(stateManagerRef.current.getState());
+    }
+
+    // Subscribe to state changes
+    const unsubscribe = stateManagerRef.current.subscribe((newState) => {
+      setState(newState);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      unsubscribe();
+      if (stateManagerRef.current) {
+        stateManagerRef.current.dispose();
+      }
+    };
+  }, []);
+
+  // State update methods
+  const updateState = useCallback((updates: Partial<AppState>) => {
+    stateManagerRef.current?.setState(updates);
+  }, []);
+
+  const updateMessages = useCallback((messages: Message[]) => {
+    stateManagerRef.current?.updateMessages(messages);
+  }, []);
+
+  const updateCurrentInput = useCallback((input: string) => {
+    stateManagerRef.current?.updateCurrentInput(input);
+  }, []);
+
+  const updateLoadingState = useCallback((isLoading: boolean) => {
+    stateManagerRef.current?.updateLoadingState(isLoading);
+  }, []);
+
+  const updateAudioState = useCallback((audioState: Partial<AudioState>) => {
+    stateManagerRef.current?.updateAudioState(audioState);
+  }, []);
+
+  const updateLangChainState = useCallback((langChainState: Partial<LangChainState>) => {
+    stateManagerRef.current?.updateLangChainState(langChainState);
+  }, []);
+
+  const updateSettings = useCallback((settings: Partial<AppSettings>) => {
+    stateManagerRef.current?.updateSettings(settings);
+  }, []);
+
+  const updateError = useCallback((error: string | undefined) => {
+    stateManagerRef.current?.updateError(error);
+  }, []);
+
+  const addMessage = useCallback((message: Omit<Message, 'id' | 'timestamp'>) => {
+    stateManagerRef.current?.addMessage(message);
+  }, []);
+
+  const updateMessage = useCallback((messageId: string, updates: Partial<Message>) => {
+    stateManagerRef.current?.updateMessage(messageId, updates);
+  }, []);
+
+  const clearMessages = useCallback(() => {
+    stateManagerRef.current?.clearMessages();
+  }, []);
+
+  const loadConversationHistory = useCallback(async () => {
+    await stateManagerRef.current?.loadConversationHistory();
+  }, []);
+
+  const resetState = useCallback(() => {
+    stateManagerRef.current?.resetState();
+  }, []);
+
+  const clearPersistedState = useCallback(() => {
+    stateManagerRef.current?.clearPersistedState();
+  }, []);
+
+  // LangChain service methods
+  const initializeLangChain = useCallback(async () => {
+    if (!langChainServiceRef.current || !stateManagerRef.current) {
+      throw new Error('Services not initialized');
+    }
+
+    try {
+      updateLoadingState(true);
+      updateError(undefined);
+      
+      const config = stateManagerRef.current.getState().settings.aiModel;
+      await langChainServiceRef.current.initialize(config);
+      
+      // Update LangChain state
+      const langChainState = langChainServiceRef.current.getState();
+      updateLangChainState(langChainState);
+      
+      // Load conversation history
+      await loadConversationHistory();
+      
+    } catch (error) {
+      updateError(error instanceof Error ? error.message : 'Failed to initialize LangChain');
+      throw error;
+    } finally {
+      updateLoadingState(false);
+    }
+  }, [updateLoadingState, updateError, updateLangChainState, loadConversationHistory]);
+
+  const sendMessage = useCallback(async (message: string) => {
+    if (!langChainServiceRef.current || !stateManagerRef.current) {
+      throw new Error('Services not initialized');
+    }
+
+    try {
+      updateLoadingState(true);
+      updateError(undefined);
+
+      // Add user message
+      addMessage({
+        text: message,
+        sender: 'user',
+        status: 'sent' as const
+      });
+
+      // Send to LangChain and get response
+      const response = await langChainServiceRef.current.sendMessage(message);
+      
+      // Add AI response
+      addMessage({
+        text: response,
+        sender: 'ai',
+        status: 'sent' as const
+      });
+
+      // Update LangChain state
+      const langChainState = langChainServiceRef.current.getState();
+      updateLangChainState(langChainState);
+
+    } catch (error) {
+      updateError(error instanceof Error ? error.message : 'Failed to send message');
+      throw error;
+    } finally {
+      updateLoadingState(false);
+    }
+  }, [updateLoadingState, updateError, addMessage, updateLangChainState]);
+
+  const clearLangChainMemory = useCallback(async () => {
+    if (!langChainServiceRef.current) {
+      throw new Error('LangChain service not initialized');
+    }
+
+    try {
+      await langChainServiceRef.current.clearMemory();
+      clearMessages();
+      
+      // Update LangChain state
+      const langChainState = langChainServiceRef.current.getState();
+      updateLangChainState(langChainState);
+      
+    } catch (error) {
+      updateError(error instanceof Error ? error.message : 'Failed to clear memory');
+      throw error;
+    }
+  }, [clearMessages, updateLangChainState, updateError]);
+
+  // Debug utilities
+  const getDebugInfo = useCallback(() => {
+    return {
+      stateManager: stateManagerRef.current?.getDebugInfo(),
+      langChain: {
+        isInitialized: langChainServiceRef.current?.isInitialized(),
+        config: langChainServiceRef.current?.getConfig(),
+        state: langChainServiceRef.current?.getState()
+      }
+    };
+  }, []);
+
+  return {
+    // State
+    state,
+    
+    // State update methods
+    updateState,
+    updateMessages,
+    updateCurrentInput,
+    updateLoadingState,
+    updateAudioState,
+    updateLangChainState,
+    updateSettings,
+    updateError,
+    
+    // Message methods
+    addMessage,
+    updateMessage,
+    clearMessages,
+    
+    // Persistence methods
+    loadConversationHistory,
+    resetState,
+    clearPersistedState,
+    
+    // LangChain methods
+    initializeLangChain,
+    sendMessage,
+    clearLangChainMemory,
+    
+    // Services (for advanced usage)
+    stateManager: stateManagerRef.current,
+    langChainService: langChainServiceRef.current,
+    
+    // Debug utilities
+    getDebugInfo
+  };
+}
+
+/**
+ * Hook for accessing only the state (read-only)
+ */
+export function useAppState() {
+  const { state } = useStateManager();
+  return state;
+}
+
+/**
+ * Hook for accessing specific parts of the state
+ */
+export function useMessages() {
+  const { state } = useStateManager();
+  return state?.messages || [];
+}
+
+export function useAudioState() {
+  const { state } = useStateManager();
+  return state?.audioState || {
+    isRecording: false,
+    isPlaying: false,
+    isSupported: false,
+    hasPermission: false
+  };
+}
+
+export function useLangChainState() {
+  const { state } = useStateManager();
+  return state?.langChainState || {
+    isInitialized: false,
+    currentModel: '',
+    conversationId: '',
+    tokenCount: 0,
+    memorySize: 0,
+    isStreaming: false
+  };
+}
+
+export function useAppSettings() {
+  const { state } = useStateManager();
+  return state?.settings;
+}
