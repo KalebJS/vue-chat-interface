@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ChatInterface } from '../components/ChatInterface';
 import { useStateManager } from '../hooks/useStateManager';
-import { MessageStatus } from '../types';
+import { MessageStatus, ModelProvider, MemoryType, ChainType } from '../types';
 
 // Mock the useStateManager hook
 vi.mock('../hooks/useStateManager');
@@ -43,18 +43,18 @@ describe('ChatInterface', () => {
       },
       aiModel: {
         model: {
-          provider: 'openai' as const,
+          provider: ModelProvider.OPENAI,
           modelName: 'gpt-3.5-turbo',
           temperature: 0.7,
           maxTokens: 1000
         },
         memory: {
-          type: 'buffer' as const,
+          type: MemoryType.BUFFER,
           maxTokenLimit: 2000,
           returnMessages: true
         },
         chain: {
-          type: 'conversation' as const,
+          type: ChainType.CONVERSATION,
           verbose: false
         }
       }
@@ -78,6 +78,7 @@ describe('ChatInterface', () => {
       updateMessage: vi.fn(),
       clearMessages: vi.fn(),
       loadConversationHistory: vi.fn(),
+      loadMoreHistory: vi.fn(),
       resetState: vi.fn(),
       clearPersistedState: vi.fn(),
       initializeLangChain: vi.fn(),
@@ -104,6 +105,7 @@ describe('ChatInterface', () => {
       updateMessage: vi.fn(),
       clearMessages: vi.fn(),
       loadConversationHistory: vi.fn(),
+      loadMoreHistory: vi.fn(),
       resetState: vi.fn(),
       clearPersistedState: vi.fn(),
       initializeLangChain: vi.fn(),

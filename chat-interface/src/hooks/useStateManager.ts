@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AppState, Message, AudioState, LangChainState, AppSettings } from '../types';
+import type { AppState, Message, AudioState, LangChainState, AppSettings } from '../types';
+import { MessageStatus } from '../types';
 import { StateManager } from '../services/StateManager';
 import { LangChainService } from '../services/LangChainService';
 
@@ -85,6 +86,10 @@ export function useStateManager() {
     await stateManagerRef.current?.loadConversationHistory();
   }, []);
 
+  const loadMoreHistory = useCallback(async (beforeMessageId?: string) => {
+    return await stateManagerRef.current?.loadMoreHistory(beforeMessageId) || [];
+  }, []);
+
   const resetState = useCallback(() => {
     stateManagerRef.current?.resetState();
   }, []);
@@ -140,7 +145,7 @@ export function useStateManager() {
       const userMessage = {
         text: message,
         sender: 'user' as const,
-        status: 'sending' as const
+        status: MessageStatus.SENDING
       };
       addMessage(userMessage);
       
@@ -151,7 +156,7 @@ export function useStateManager() {
 
       // Update user message to sent status
       if (userMessageId) {
-        updateMessage(userMessageId, { status: 'sent' as const });
+        updateMessage(userMessageId, { status: MessageStatus.SENT });
       }
 
       // Send to LangChain and get response
@@ -161,7 +166,7 @@ export function useStateManager() {
       addMessage({
         text: response,
         sender: 'ai',
-        status: 'sent' as const
+        status: MessageStatus.SENT
       });
 
       // Update LangChain state
@@ -171,7 +176,7 @@ export function useStateManager() {
     } catch (error) {
       // Update user message to error status if we have the ID
       if (userMessageId) {
-        updateMessage(userMessageId, { status: 'error' as const });
+        updateMessage(userMessageId, { status: MessageStatus.ERROR });
       }
       
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
@@ -234,6 +239,7 @@ export function useStateManager() {
     
     // Persistence methods
     loadConversationHistory,
+    loadMoreHistory,
     resetState,
     clearPersistedState,
     

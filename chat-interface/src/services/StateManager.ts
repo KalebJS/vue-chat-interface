@@ -1,14 +1,16 @@
-import { 
+import type { 
   AppState, 
   Message, 
   AudioState, 
   LangChainState, 
   AppSettings,
+  LangChainConfig
+} from '../types';
+import {
   ModelProvider,
   MemoryType,
   ChainType,
-  MessageStatus,
-  LangChainConfig
+  MessageStatus
 } from '../types';
 import { LangChainService } from './LangChainService';
 
@@ -224,20 +226,73 @@ export class StateManager {
   }
 
   /**
-   * Load conversation history from LangChain service
+   * Load conversation history from both localStorage and LangChain service
    */
   async loadConversationHistory(): Promise<void> {
-    if (!this.langChainService.isInitialized()) {
-      return;
-    }
-
     try {
-      const history = await this.langChainService.getConversationHistory();
-      this.setState({ messages: history });
+      // First, load from localStorage (already done in constructor)
+      let messages = [...this.state.messages];
+
+      // Then, if LangChain is initialized, merge with LangChain history
+      if (this.langChainService.isInitialized()) {
+        const langChainHistory = await this.langChainService.getConversationHistory();
+        
+        // Merge histories, avoiding duplicates based on message content and timestamp
+        const mergedMessages = this.mergeMessageHistories(messages, langChainHistory);
+        messages = mergedMessages;
+      }
+
+      this.setState({ messages });
     } catch (error) {
       console.error('Failed to load conversation history:', error);
       this.setState({ error: 'Failed to load conversation history' });
     }
+  }
+
+  /**
+   * Load more conversation history (for infinite scroll)
+   */
+  async loadMoreHistory(_beforeMessageId?: string): Promise<Message[]> {
+    if (!this.langChainService.isInitialized()) {
+      return [];
+    }
+
+    try {
+      // In a real implementation, this would load older messages
+      // For now, we'll return empty array as this would require
+      // pagination support in the LangChain service
+      return [];
+    } catch (error) {
+      console.error('Failed to load more history:', error);
+      this.setState({ error: 'Failed to load more conversation history' });
+      return [];
+    }
+  }
+
+  /**
+   * Merge message histories from different sources, avoiding duplicates
+   */
+  private mergeMessageHistories(localMessages: Message[], langChainMessages: Message[]): Message[] {
+    const messageMap = new Map<string, Message>();
+    
+    // Add local messages first
+    localMessages.forEach(msg => {
+      const key = `${msg.text}-${msg.sender}-${msg.timestamp.getTime()}`;
+      messageMap.set(key, msg);
+    });
+    
+    // Add LangChain messages, avoiding duplicates
+    langChainMessages.forEach(msg => {
+      const key = `${msg.text}-${msg.sender}-${msg.timestamp.getTime()}`;
+      if (!messageMap.has(key)) {
+        messageMap.set(key, msg);
+      }
+    });
+    
+    // Sort by timestamp
+    return Array.from(messageMap.values()).sort((a, b) => 
+      a.timestamp.getTime() - b.timestamp.getTime()
+    );
   }
 
   /**

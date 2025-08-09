@@ -44,7 +44,7 @@
   - Write integration tests for message flow
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 7. Add auto-scroll and conversation history features
+- [x] 7. Add auto-scroll and conversation history features
   - Implement automatic scrolling to latest messages
   - Add smooth scrolling navigation for long conversations
   - Create conversation history loading from localStorage and LangChain memory

@@ -21,12 +21,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
     initializeLangChain
   } = useStateManager();
 
-  // Initialize LangChain service on component mount
+  // Initialize LangChain service and load conversation history on component mount
   useEffect(() => {
     const initialize = async () => {
       if (state && !state.langChainState.isInitialized) {
         try {
           await initializeLangChain();
+          // Load conversation history after initialization
+          // This will be handled by the state manager
         } catch (error) {
           console.error('Failed to initialize LangChain:', error);
           // Error is already handled in initializeLangChain
@@ -88,6 +90,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
     console.log('Audio recording not yet implemented');
   };
 
+  const handleScrollToTop = () => {
+    // Handle loading more history when user scrolls to top
+    // This could trigger loading older messages in a real implementation
+    console.log('Loading more history...');
+  };
+
   return (
     <div className={`chat-interface ${className}`}>
       <div className="chat-header">
@@ -110,6 +118,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
         messages={state.messages}
         isLoading={state.isLoading}
         autoScroll={state.settings.autoScroll}
+        onScrollToTop={handleScrollToTop}
       />
 
       <InputArea

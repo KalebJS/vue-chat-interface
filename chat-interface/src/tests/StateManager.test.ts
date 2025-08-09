@@ -331,6 +331,80 @@ describe('StateManager', () => {
       expect(stateManager.getState().messages).toEqual(mockHistory);
     });
 
+    it('should merge localStorage and LangChain history without duplicates', async () => {
+      // Set up localStorage history
+      const localHistory = [{
+        id: 'local-1',
+        text: 'Local message',
+        sender: 'user',
+        timestamp: new Date('2023-01-01T10:00:00Z'),
+        status: MessageStatus.SENT
+      }];
+      
+      const persistedState = {
+        messages: localHistory,
+        settings: { autoScroll: true }
+      };
+      
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(persistedState));
+      
+      // Create new state manager to load persisted state
+      const newStateManager = new StateManager(mockLangChainService);
+      
+      // Set up LangChain history with one duplicate and one new message
+      const langChainHistory: Message[] = [
+        {
+          id: 'local-1-duplicate',
+          text: 'Local message', // Same text as local message
+          sender: 'user',
+          timestamp: new Date('2023-01-01T10:00:00Z'), // Same timestamp
+          status: MessageStatus.SENT
+        },
+        {
+          id: 'langchain-1',
+          text: 'LangChain message',
+          sender: 'ai',
+          timestamp: new Date('2023-01-01T10:01:00Z'),
+          status: MessageStatus.SENT
+        }
+      ];
+      
+      vi.mocked(mockLangChainService.isInitialized).mockReturnValue(true);
+      vi.mocked(mockLangChainService.getConversationHistory).mockResolvedValue(langChainHistory);
+      
+      await newStateManager.loadConversationHistory();
+      
+      const messages = newStateManager.getState().messages;
+      
+      // Should have 2 messages (duplicate removed)
+      expect(messages).toHaveLength(2);
+      expect(messages.find(m => m.text === 'Local message')).toBeDefined();
+      expect(messages.find(m => m.text === 'LangChain message')).toBeDefined();
+      
+      // Messages should be sorted by timestamp
+      expect(messages[0].text).toBe('Local message');
+      expect(messages[1].text).toBe('LangChain message');
+      
+      newStateManager.dispose();
+    });
+
+    it('should handle loadMoreHistory method', async () => {
+      vi.mocked(mockLangChainService.isInitialized).mockReturnValue(true);
+      
+      const moreHistory = await stateManager.loadMoreHistory('message-id');
+      
+      // Currently returns empty array as pagination is not implemented
+      expect(moreHistory).toEqual([]);
+    });
+
+    it('should handle loadMoreHistory when service not initialized', async () => {
+      vi.mocked(mockLangChainService.isInitialized).mockReturnValue(false);
+      
+      const moreHistory = await stateManager.loadMoreHistory('message-id');
+      
+      expect(moreHistory).toEqual([]);
+    });
+
     it('should handle LangChain errors gracefully', async () => {
       vi.mocked(mockLangChainService.isInitialized).mockReturnValue(true);
       vi.mocked(mockLangChainService.getConversationHistory).mockRejectedValue(

@@ -4,15 +4,18 @@ import { ConversationChain } from 'langchain/chains';
 import { BufferMemory, ConversationSummaryMemory } from 'langchain/memory';
 import { BaseMemory } from 'langchain/memory';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { 
+import type { 
   LangChainConfig, 
   LangChainState, 
+  Message
+} from '../types';
+import {
   ModelProvider, 
   MemoryType, 
   ChainType,
   LangChainError,
   LangChainErrorCode,
-  Message
+  MessageStatus
 } from '../types';
 
 export class LangChainService {
@@ -138,7 +141,6 @@ export class LangChainService {
           }
           return new ConversationSummaryMemory({
             llm: this.model,
-            maxTokenLimit: memoryConfig.maxTokenLimit || 2000,
             returnMessages: memoryConfig.returnMessages || true,
             memoryKey: 'history'
           });
@@ -222,7 +224,7 @@ export class LangChainService {
           text: msg.content || msg.text || String(msg),
           sender: msg.type === 'human' ? 'user' as const : 'ai' as const,
           timestamp: new Date(),
-          status: 'sent' as const
+          status: MessageStatus.SENT
         }));
       }
 
@@ -279,7 +281,18 @@ export class LangChainService {
     }
 
     try {
-      await this.memory.clear();
+      // Clear memory if it has a clear method
+      if ('clear' in this.memory && typeof this.memory.clear === 'function') {
+        await this.memory.clear();
+      } else {
+        // For memories without clear method, recreate the memory
+        if (this.config) {
+          this.memory = await this.createMemory(this.config.memory);
+          if (this.chain) {
+            this.chain.memory = this.memory;
+          }
+        }
+      }
       this.state.memorySize = 0;
       this.state.tokenCount = 0;
     } catch (error) {
