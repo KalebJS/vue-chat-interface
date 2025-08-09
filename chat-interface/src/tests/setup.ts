@@ -1,6 +1,9 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
+// Mock scrollIntoView for tests
+Element.prototype.scrollIntoView = vi.fn();
+
 // Mock Web Speech API for testing
 const mockSpeechRecognition = vi.fn().mockImplementation(() => ({
   start: vi.fn(),

@@ -1,0 +1,181 @@
+/* MessageItem.css - Individual message styling */
+
+.message-item {
+  margin-bottom: 1rem;
+  display: flex;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-content {
+  max-width: 70%;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e9ecef;
+  position: relative;
+}
+
+/* User messages - right aligned, blue theme */
+.message-user {
+  justify-content: flex-end;
+}
+
+.message-user .message-content {
+  background: #007bff;
+  color: white;
+  border-color: #0056b3;
+}
+
+.message-user .message-header {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* AI messages - left aligned, gray theme */
+.message-ai {
+  justify-content: flex-start;
+}
+
+.message-ai .message-content {
+  background: #f8f9fa;
+  color: #333;
+  border-color: #e9ecef;
+}
+
+.message-ai .message-header {
+  color: #666;
+}
+
+/* Message header with sender, time, and status */
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.message-sender {
+  font-weight: 600;
+}
+
+.message-time {
+  opacity: 0.7;
+}
+
+.message-status {
+  margin-left: auto;
+  font-size: 0.9rem;
+}
+
+/* Message text content */
+.message-text {
+  font-size: 1rem;
+  line-height: 1.4;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+/* Audio controls */
+.message-audio {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.message-user .message-audio {
+  border-top-color: rgba(255, 255, 255, 0.2);
+}
+
+.audio-play-button {
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.message-user .audio-play-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.audio-play-button:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.message-user .audio-play-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Status-specific styling */
+.status-sending .message-content {
+  opacity: 0.7;
+}
+
+.status-error .message-content {
+  background: #fee;
+  border-color: #fcc;
+  color: #c33;
+}
+
+.status-error .message-header {
+  color: #c33;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .message-content {
+    max-width: 85%;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .message-header {
+    font-size: 0.75rem;
+    gap: 0.4rem;
+  }
+
+  .message-text {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .message-content {
+    max-width: 90%;
+    padding: 0.5rem 0.7rem;
+  }
+
+  .message-header {
+    font-size: 0.7rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .message-text {
+    font-size: 0.9rem;
+    line-height: 1.3;
+  }
+
+  .message-audio {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+  }
+
+  .audio-play-button {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+}
