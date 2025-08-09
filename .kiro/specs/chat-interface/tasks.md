@@ -52,7 +52,7 @@
   - Write tests for scroll behavior and history management
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 8. Implement Web Speech API audio controller
+- [x] 8. Implement Web Speech API audio controller
   - Create AudioController service with speech recognition setup
   - Add microphone permission handling and error states
   - Implement speech-to-text conversion with visual feedback
@@ -60,7 +60,7 @@
   - Write unit tests for audio controller functionality
   - _Requirements: 2.1, 2.4, 2.5_
 
-- [ ] 9. Build audio recording interface components
+- [x] 9. Build audio recording interface components
   - Create RecordButton component with recording state indicators
   - Add visual feedback for active recording (pulsing animation, timer)
   - Implement start/stop recording functionality

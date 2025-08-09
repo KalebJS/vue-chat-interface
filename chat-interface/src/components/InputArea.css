@@ -51,47 +51,7 @@
   gap: 0.5rem;
 }
 
-/* Record button */
-.record-button {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 0.5rem;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  height: 40px;
-}
-
-.record-button:hover:not(:disabled) {
-  background: #e9ecef;
-  border-color: #dee2e6;
-}
-
-.record-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.record-button.recording {
-  background: #dc3545;
-  border-color: #c82333;
-  color: white;
-  animation: recordingPulse 1s infinite;
-}
-
-@keyframes recordingPulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-}
+/* Record button styles moved to RecordButton.css */
 
 /* Send button */
 .send-button {
@@ -184,7 +144,6 @@
     font-size: 0.95rem;
   }
 
-  .record-button,
   .send-button {
     min-width: 36px;
     height: 36px;
@@ -206,7 +165,6 @@
     font-size: 0.9rem;
   }
 
-  .record-button,
   .send-button {
     min-width: 32px;
     height: 32px;

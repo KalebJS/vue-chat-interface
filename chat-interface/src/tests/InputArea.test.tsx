@@ -105,14 +105,17 @@ describe('InputArea', () => {
     render(<InputArea {...defaultProps} audioEnabled={true} />);
 
     expect(screen.getByLabelText('Start recording')).toBeInTheDocument();
-    expect(screen.getByText('🎤')).toBeInTheDocument();
+    // Check for microphone icon elements instead of emoji
+    const recordButton = screen.getByLabelText('Start recording');
+    expect(recordButton.querySelector('.mic-icon')).toBeInTheDocument();
   });
 
   it('does not render record button when audio is disabled', () => {
     render(<InputArea {...defaultProps} audioEnabled={false} />);
 
     expect(screen.queryByLabelText('Start recording')).not.toBeInTheDocument();
-    expect(screen.queryByText('🎤')).not.toBeInTheDocument();
+    // Check that the record button container is not present
+    expect(screen.queryByRole('button', { name: /recording/i })).not.toBeInTheDocument();
   });
 
   it('calls onToggleRecording when record button is clicked', () => {
@@ -128,7 +131,9 @@ describe('InputArea', () => {
     render(<InputArea {...defaultProps} isRecording={true} />);
 
     expect(screen.getByLabelText('Stop recording')).toBeInTheDocument();
-    expect(screen.getByText('⏹️')).toBeInTheDocument();
+    // Check for stop icon elements instead of emoji
+    const recordButton = screen.getByLabelText('Stop recording');
+    expect(recordButton.querySelector('.stop-icon')).toBeInTheDocument();
     expect(screen.getByText('Recording... Click stop when finished')).toBeInTheDocument();
   });
 

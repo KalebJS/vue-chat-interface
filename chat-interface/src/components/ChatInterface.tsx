@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useStateManager } from '../hooks/useStateManager';
 import { MessageList } from './MessageList';
 import { InputArea } from './InputArea';
+import { AudioController } from '../services/AudioController';
 import './ChatInterface.css';
 
 interface ChatInterfaceProps {
@@ -18,10 +19,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
     sendMessage,
     updateCurrentInput,
     updateError,
+    updateAudioState,
     initializeLangChain
   } = useStateManager();
+  
+  const audioControllerRef = useRef<AudioController | null>(null);
 
-  // Initialize LangChain service and load conversation history on component mount
+  // Initialize LangChain service and AudioController on component mount
   useEffect(() => {
     const initialize = async () => {
       if (state && !state.langChainState.isInitialized) {
@@ -38,6 +42,33 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
 
     initialize();
   }, [state?.langChainState.isInitialized, initializeLangChain]);
+
+  // Initialize AudioController
+  useEffect(() => {
+    if (!audioControllerRef.current) {
+      audioControllerRef.current = new AudioController();
+      
+      // Set up audio state callback
+      audioControllerRef.current.setStateChangeCallback((audioState) => {
+        updateAudioState(audioState);
+      });
+      
+      // Set up transcription callback to update input
+      audioControllerRef.current.setTranscriptionCallback((text) => {
+        updateCurrentInput(text);
+      });
+      
+      // Initialize audio state
+      updateAudioState(audioControllerRef.current.getState());
+    }
+
+    return () => {
+      if (audioControllerRef.current) {
+        audioControllerRef.current.destroy();
+        audioControllerRef.current = null;
+      }
+    };
+  }, [updateAudioState, updateCurrentInput]);
 
   if (!state) {
     return (
@@ -85,9 +116,24 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
     updateCurrentInput(value);
   };
 
-  const handleToggleRecording = () => {
-    // Audio recording will be implemented in a later task
-    console.log('Audio recording not yet implemented');
+  const handleToggleRecording = async () => {
+    if (!audioControllerRef.current) {
+      updateError('Audio controller not initialized');
+      return;
+    }
+
+    try {
+      if (state?.audioState.isRecording) {
+        // Stop recording
+        audioControllerRef.current.stopRecording();
+      } else {
+        // Start recording
+        await audioControllerRef.current.startRecording();
+      }
+    } catch (error) {
+      console.error('Audio recording error:', error);
+      updateError(error instanceof Error ? error.message : 'Audio recording failed');
+    }
   };
 
   const handleScrollToTop = () => {

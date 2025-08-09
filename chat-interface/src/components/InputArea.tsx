@@ -1,4 +1,5 @@
 import React, { useRef, type KeyboardEvent } from 'react';
+import { RecordButton } from './RecordButton';
 import './InputArea.css';
 
 interface InputAreaProps {
@@ -72,15 +73,12 @@ export const InputArea: React.FC<InputAreaProps> = ({
         
         <div className="input-buttons">
           {audioEnabled && (
-            <button
-              className={`record-button ${isRecording ? 'recording' : ''}`}
-              onClick={onToggleRecording}
-              disabled={isLoading}
-              aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-              title={isRecording ? 'Stop recording' : 'Start voice recording'}
-            >
-              {isRecording ? '⏹️' : '🎤'}
-            </button>
+            <RecordButton
+              isRecording={isRecording}
+              isLoading={isLoading}
+              audioEnabled={audioEnabled}
+              onToggleRecording={onToggleRecording}
+            />
           )}
           
           <button
