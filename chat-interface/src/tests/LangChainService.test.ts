@@ -1,13 +1,20 @@
 import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
 import { LangChainService } from '../services/LangChainService';
+import { NetworkErrorHandler } from '../services/NetworkErrorHandler';
 import { 
   LangChainConfig, 
   ModelProvider, 
   MemoryType, 
   ChainType,
   LangChainError,
-  LangChainErrorCode
+  LangChainErrorCode,
+  NetworkError,
+  NetworkErrorCode
 } from '../types';
+
+// Mock NetworkErrorHandler
+jest.mock('../services/NetworkErrorHandler');
+const mockNetworkErrorHandler = NetworkErrorHandler as jest.Mocked<typeof NetworkErrorHandler>;
 
 // Mock LangChain modules
 vi.mock('@langchain/openai', () => ({
@@ -388,6 +395,117 @@ describe('LangChainService', () => {
       expect(id1).not.toBe(id2);
       expect(id1).toMatch(/^conv_\d+_[a-z0-9]+$/);
       expect(id2).toMatch(/^conv_\d+_[a-z0-9]+$/);
+    });
+  });
+
+  describe('enhanced error handling', () => {
+    beforeEach(async () => {
+      await service.initialize(mockConfig);
+    });
+
+    it('should validate configuration before initialization', async () => {
+      const invalidConfigs = [
+        null,
+        undefined,
+        {},
+        { model: null },
+        { model: {} },
+        { model: { provider: null, modelName: null } },
+        { model: { provider: ModelProvider.OPENAI, modelName: 'gpt-3.5-turbo', temperature: -1, maxTokens: 1000 } },
+        { model: { provider: ModelProvider.OPENAI, modelName: 'gpt-3.5-turbo', temperature: 3, maxTokens: 1000 } },
+        { model: { provider: ModelProvider.OPENAI, modelName: 'gpt-3.5-turbo', temperature: 0.7, maxTokens: -1 } }
+      ];
+
+      for (const config of invalidConfigs) {
+        const newService = new LangChainService();
+        await expect(newService.initialize(config as any)).rejects.toThrow(LangChainError);
+      }
+    });
+
+    it('should get health status', () => {
+      const health = service.getHealthStatus();
+      
+      expect(health.isHealthy).toBe(true);
+      expect(health.issues).toHaveLength(0);
+    });
+
+    it('should report unhealthy status when not initialized', () => {
+      const uninitializedService = new LangChainService();
+      const health = uninitializedService.getHealthStatus();
+      
+      expect(health.isHealthy).toBe(false);
+      expect(health.issues).toContain('Service not initialized');
+      expect(health.issues).toContain('Conversation chain not available');
+      expect(health.issues).toContain('AI model not available');
+      expect(health.issues).toContain('Memory not available');
+    });
+
+    it('should handle network errors in sendMessage', async () => {
+      // Mock NetworkErrorHandler to simulate network error
+      vi.mocked(NetworkErrorHandler.executeWithRetry).mockRejectedValueOnce(
+        new NetworkError('Network failed', NetworkErrorCode.CONNECTION_FAILED)
+      );
+
+      await expect(service.sendMessage('Hello')).rejects.toThrow(LangChainError);
+      await expect(service.sendMessage('Hello')).rejects.toThrow('Network error during conversation');
+    });
+
+    it('should handle rate limit errors', async () => {
+      const rateLimitError = new Error('Rate limit exceeded');
+      (rateLimitError as any).status = 429;
+
+      vi.mocked(NetworkErrorHandler.executeWithRetry).mockRejectedValueOnce(rateLimitError);
+
+      await expect(service.sendMessage('Hello')).rejects.toThrow(LangChainError);
+      await expect(service.sendMessage('Hello')).rejects.toThrow('Rate limit exceeded');
+    });
+
+    it('should handle authentication errors', async () => {
+      const authError = new Error('Unauthorized');
+      (authError as any).status = 401;
+
+      vi.mocked(NetworkErrorHandler.executeWithRetry).mockRejectedValueOnce(authError);
+
+      await expect(service.sendMessage('Hello')).rejects.toThrow(LangChainError);
+      await expect(service.sendMessage('Hello')).rejects.toThrow('Authentication failed');
+    });
+
+    it('should handle model unavailable errors', async () => {
+      const serverError = new Error('Service unavailable');
+      (serverError as any).status = 503;
+
+      vi.mocked(NetworkErrorHandler.executeWithRetry).mockRejectedValueOnce(serverError);
+
+      await expect(service.sendMessage('Hello')).rejects.toThrow(LangChainError);
+      await expect(service.sendMessage('Hello')).rejects.toThrow('AI model is currently unavailable');
+    });
+
+    it('should handle memory errors gracefully', async () => {
+      // Mock memory to throw error
+      const mockMemory = {
+        loadMemoryVariables: vi.fn().mockRejectedValue(new Error('Memory error'))
+      };
+      
+      (service as any).memory = mockMemory;
+
+      // Should still work despite memory error
+      const response = await service.sendMessage('Hello');
+      expect(response).toBe('Mocked chain response');
+    });
+
+    it('should reset state on initialization failure', async () => {
+      const newService = new LangChainService();
+      
+      try {
+        await newService.initialize({
+          ...mockConfig,
+          model: { ...mockConfig.model, provider: 'invalid' as any }
+        });
+      } catch (error) {
+        // Service should be disposed after failure
+        expect(newService.isInitialized()).toBe(false);
+        expect(newService.getConfig()).toBeNull();
+      }
     });
   });
 });

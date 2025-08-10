@@ -1,0 +1,348 @@
+/* Fallback UI Styles */
+
+.fallback-ui {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.fallback-ui--audio {
+  background-color: #fef3c7;
+  border-color: #fbbf24;
+}
+
+.fallback-ui--langchain {
+  background-color: #ede9fe;
+  border-color: #c4b5fd;
+}
+
+.fallback-ui--network {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+}
+
+.fallback-ui--general {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.fallback-ui__content {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.fallback-ui__icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.fallback-ui__title {
+  color: #374151;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.fallback-ui--audio .fallback-ui__title {
+  color: #92400e;
+}
+
+.fallback-ui--langchain .fallback-ui__title {
+  color: #7c3aed;
+}
+
+.fallback-ui--network .fallback-ui__title {
+  color: #dc2626;
+}
+
+.fallback-ui__message {
+  color: #6b7280;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.fallback-ui__details {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
+.fallback-ui__suggestions {
+  text-align: left;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.fallback-ui__suggestions h4 {
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.fallback-ui__suggestions ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.fallback-ui__suggestions li {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.fallback-ui__suggestions li::before {
+  content: '•';
+  color: #9ca3af;
+  position: absolute;
+  left: 0;
+}
+
+.fallback-ui__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.fallback-ui__retry-button,
+.fallback-ui__dismiss-button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.fallback-ui__retry-button {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.fallback-ui__retry-button:hover {
+  background-color: #2563eb;
+}
+
+.fallback-ui__dismiss-button {
+  background-color: #6b7280;
+  color: white;
+}
+
+.fallback-ui__dismiss-button:hover {
+  background-color: #4b5563;
+}
+
+/* Audio Fallback Specific */
+.langchain-fallback {
+  margin: 1rem 0;
+}
+
+.langchain-fallback__ui {
+  margin-bottom: 1rem;
+}
+
+.langchain-fallback__reset {
+  text-align: center;
+}
+
+.langchain-fallback__reset-button {
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.langchain-fallback__reset-button:hover {
+  background-color: #d97706;
+}
+
+/* Network Status */
+.network-status {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  max-width: 300px;
+}
+
+.network-status--offline {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.network-status__content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.network-status__icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.network-status__message {
+  color: #dc2626;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Loading Fallback */
+.loading-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 2rem;
+}
+
+.loading-fallback__content {
+  text-align: center;
+}
+
+.loading-fallback__spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 1rem;
+  position: relative;
+}
+
+.loading-fallback__spinner-inner {
+  width: 100%;
+  height: 100%;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: loading-spin 1s linear infinite;
+}
+
+@keyframes loading-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-fallback__message {
+  color: #6b7280;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .fallback-ui {
+    padding: 1rem;
+    margin: 0.5rem 0;
+  }
+
+  .fallback-ui__icon {
+    font-size: 2rem;
+  }
+
+  .fallback-ui__title {
+    font-size: 1.125rem;
+  }
+
+  .fallback-ui__actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .fallback-ui__retry-button,
+  .fallback-ui__dismiss-button {
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .network-status {
+    position: static;
+    margin: 0.5rem;
+    max-width: none;
+  }
+
+  .fallback-ui__suggestions {
+    padding: 0.75rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .fallback-ui {
+    border-width: 2px;
+    background-color: #ffffff;
+  }
+
+  .fallback-ui__title,
+  .fallback-ui__message,
+  .fallback-ui__details {
+    color: #000000;
+  }
+
+  .fallback-ui__suggestions {
+    background-color: #f5f5f5;
+    border: 1px solid #000000;
+  }
+
+  .network-status--offline {
+    background-color: #ffffff;
+    border-width: 2px;
+  }
+
+  .network-status__message {
+    color: #000000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .fallback-ui__retry-button,
+  .fallback-ui__dismiss-button,
+  .langchain-fallback__reset-button {
+    transition: none;
+  }
+
+  .loading-fallback__spinner-inner {
+    animation: none;
+    border-top-color: #6b7280;
+  }
+}
+
+/* Focus styles for accessibility */
+.fallback-ui__retry-button:focus,
+.fallback-ui__dismiss-button:focus,
+.langchain-fallback__reset-button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .network-status,
+  .loading-fallback {
+    display: none;
+  }
+
+  .fallback-ui {
+    background-color: transparent;
+    border: 1px solid #000000;
+  }
+}

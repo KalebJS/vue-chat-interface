@@ -1,4 +1,5 @@
-import { AudioState, AudioError, AudioErrorCode, VoiceSettings } from '../types';
+import type { AudioState, VoiceSettings } from '../types';
+import { AudioError, AudioErrorCode } from '../types';
 
 /**
  * AudioController handles Web Speech API interactions for speech recognition and synthesis
@@ -404,6 +405,203 @@ export class AudioController {
     if (this.stateChangeCallback) {
       this.stateChangeCallback(this.audioState);
     }
+  }
+
+  /**
+   * Test audio functionality and return capability report
+   */
+  async testAudioCapabilities(): Promise<{
+    speechRecognition: boolean;
+    speechSynthesis: boolean;
+    microphone: boolean;
+    errors: string[];
+  }> {
+    const result = {
+      speechRecognition: false,
+      speechSynthesis: false,
+      microphone: false,
+      errors: [] as string[]
+    };
+
+    // Test speech recognition
+    try {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      result.speechRecognition = !!SpeechRecognition;
+      if (!result.speechRecognition) {
+        result.errors.push('Speech recognition not supported in this browser');
+      }
+    } catch (error) {
+      result.errors.push('Failed to test speech recognition support');
+    }
+
+    // Test speech synthesis
+    try {
+      result.speechSynthesis = !!window.speechSynthesis;
+      if (!result.speechSynthesis) {
+        result.errors.push('Speech synthesis not supported in this browser');
+      }
+    } catch (error) {
+      result.errors.push('Failed to test speech synthesis support');
+    }
+
+    // Test microphone access
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop());
+        result.microphone = true;
+      } else {
+        result.errors.push('Microphone access not supported');
+      }
+    } catch (error) {
+      result.errors.push('Microphone permission denied or unavailable');
+    }
+
+    return result;
+  }
+
+  /**
+   * Get detailed error information for troubleshooting
+   */
+  getErrorDiagnostics(): {
+    browserSupport: {
+      speechRecognition: boolean;
+      speechSynthesis: boolean;
+      mediaDevices: boolean;
+    };
+    permissions: {
+      microphone: boolean;
+    };
+    currentState: AudioState;
+    recommendations: string[];
+  } {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    const diagnostics = {
+      browserSupport: {
+        speechRecognition: !!SpeechRecognition,
+        speechSynthesis: !!window.speechSynthesis,
+        mediaDevices: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+      },
+      permissions: {
+        microphone: this.audioState.hasPermission
+      },
+      currentState: { ...this.audioState },
+      recommendations: [] as string[]
+    };
+
+    // Generate recommendations based on diagnostics
+    if (!diagnostics.browserSupport.speechRecognition) {
+      diagnostics.recommendations.push('Use a modern browser like Chrome, Edge, or Safari for speech recognition');
+    }
+
+    if (!diagnostics.browserSupport.speechSynthesis) {
+      diagnostics.recommendations.push('Speech synthesis requires a modern browser');
+    }
+
+    if (!diagnostics.browserSupport.mediaDevices) {
+      diagnostics.recommendations.push('Microphone access requires HTTPS and a modern browser');
+    }
+
+    if (!diagnostics.permissions.microphone) {
+      diagnostics.recommendations.push('Grant microphone permission in browser settings');
+    }
+
+    if (this.audioState.error) {
+      diagnostics.recommendations.push('Check browser console for detailed error information');
+    }
+
+    return diagnostics;
+  }
+
+  /**
+   * Attempt to recover from audio errors
+   */
+  async recoverFromError(): Promise<boolean> {
+    try {
+      // Reset error state
+      this.updateState({ error: undefined });
+
+      // Reinitialize audio support
+      this.initializeAudioSupport();
+
+      // Test capabilities
+      const capabilities = await this.testAudioCapabilities();
+      
+      if (capabilities.errors.length === 0) {
+        this.updateState({ 
+          isSupported: true,
+          hasPermission: capabilities.microphone
+        });
+        return true;
+      } else {
+        this.updateState({ 
+          error: `Recovery failed: ${capabilities.errors.join(', ')}`
+        });
+        return false;
+      }
+    } catch (error) {
+      this.updateState({ 
+        error: `Recovery failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Gracefully degrade audio features
+   */
+  gracefullyDegrade(): void {
+    // Stop any ongoing audio operations
+    this.stopRecording();
+    this.stopSpeaking();
+
+    // Update state to reflect degraded mode
+    this.updateState({
+      isSupported: false,
+      hasPermission: false,
+      isRecording: false,
+      isPlaying: false,
+      isPaused: false,
+      error: 'Audio features disabled due to errors'
+    });
+
+    console.warn('Audio features have been gracefully degraded to text-only mode');
+  }
+
+  /**
+   * Check if audio features should be available based on environment
+   */
+  shouldAudioBeAvailable(): {
+    available: boolean;
+    reasons: string[];
+  } {
+    const reasons: string[] = [];
+
+    // Check HTTPS requirement
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+      reasons.push('HTTPS is required for audio features');
+    }
+
+    // Check browser support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      reasons.push('Browser does not support speech recognition');
+    }
+
+    if (!window.speechSynthesis) {
+      reasons.push('Browser does not support speech synthesis');
+    }
+
+    // Check media devices
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      reasons.push('Browser does not support media device access');
+    }
+
+    return {
+      available: reasons.length === 0,
+      reasons
+    };
   }
 
   /**

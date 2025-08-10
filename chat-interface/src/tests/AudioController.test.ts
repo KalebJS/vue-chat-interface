@@ -570,4 +570,288 @@ describe('AudioController', () => {
       expect(audioController['transcriptionCallback']).toBeNull();
     });
   });
+});  d
+escribe('Enhanced Error Handling', () => {
+    it('should test audio capabilities', async () => {
+      const capabilities = await audioController.testAudioCapabilities();
+      
+      expect(capabilities.speechRecognition).toBe(true);
+      expect(capabilities.speechSynthesis).toBe(true);
+      expect(capabilities.microphone).toBe(true);
+      expect(capabilities.errors).toHaveLength(0);
+    });
+
+    it('should report capabilities when features are unavailable', async () => {
+      // Mock unavailable features
+      Object.defineProperty(global, 'window', {
+        writable: true,
+        value: {
+          SpeechRecognition: undefined,
+          webkitSpeechRecognition: undefined,
+          speechSynthesis: undefined
+        }
+      });
+
+      Object.defineProperty(global.navigator, 'mediaDevices', {
+        writable: true,
+        value: undefined
+      });
+
+      const controller = new AudioController();
+      const capabilities = await controller.testAudioCapabilities();
+      
+      expect(capabilities.speechRecognition).toBe(false);
+      expect(capabilities.speechSynthesis).toBe(false);
+      expect(capabilities.microphone).toBe(false);
+      expect(capabilities.errors.length).toBeGreaterThan(0);
+      
+      controller.destroy();
+    });
+
+    it('should get error diagnostics', () => {
+      const diagnostics = audioController.getErrorDiagnostics();
+      
+      expect(diagnostics.browserSupport.speechRecognition).toBe(true);
+      expect(diagnostics.browserSupport.speechSynthesis).toBe(true);
+      expect(diagnostics.browserSupport.mediaDevices).toBe(true);
+      expect(diagnostics.currentState).toBeDefined();
+      expect(Array.isArray(diagnostics.recommendations)).toBe(true);
+    });
+
+    it('should provide recommendations for unsupported features', () => {
+      // Mock unsupported browser
+      Object.defineProperty(global, 'window', {
+        writable: true,
+        value: {
+          SpeechRecognition: undefined,
+          webkitSpeechRecognition: undefined,
+          speechSynthesis: undefined
+        }
+      });
+
+      const controller = new AudioController();
+      const diagnostics = controller.getErrorDiagnostics();
+      
+      expect(diagnostics.recommendations).toContain('Use a modern browser like Chrome, Edge, or Safari for speech recognition');
+      expect(diagnostics.recommendations).toContain('Speech synthesis requires a modern browser');
+      
+      controller.destroy();
+    });
+
+    it('should recover from errors', async () => {
+      // Simulate an error state
+      audioController['updateState']({ error: 'Test error' });
+      
+      const recovered = await audioController.recoverFromError();
+      
+      expect(recovered).toBe(true);
+      const state = audioController.getState();
+      expect(state.error).toBeUndefined();
+    });
+
+    it('should fail to recover when capabilities are unavailable', async () => {
+      // Mock unavailable features
+      Object.defineProperty(global, 'window', {
+        writable: true,
+        value: {
+          SpeechRecognition: undefined,
+          webkitSpeechRecognition: undefined,
+          speechSynthesis: undefined
+        }
+      });
+
+      const controller = new AudioController();
+      const recovered = await controller.recoverFromError();
+      
+      expect(recovered).toBe(false);
+      const state = controller.getState();
+      expect(state.error).toContain('Recovery failed');
+      
+      controller.destroy();
+    });
+
+    it('should gracefully degrade audio features', () => {
+      audioController.gracefullyDegrade();
+      
+      const state = audioController.getState();
+      expect(state.isSupported).toBe(false);
+      expect(state.hasPermission).toBe(false);
+      expect(state.isRecording).toBe(false);
+      expect(state.isPlaying).toBe(false);
+      expect(state.error).toContain('Audio features disabled due to errors');
+    });
+
+    it('should check if audio should be available', () => {
+      const availability = audioController.shouldAudioBeAvailable();
+      
+      expect(availability.available).toBe(true);
+      expect(availability.reasons).toHaveLength(0);
+    });
+
+    it('should report reasons why audio is unavailable', () => {
+      // Mock non-HTTPS environment
+      Object.defineProperty(global, 'location', {
+        writable: true,
+        value: {
+          protocol: 'http:',
+          hostname: 'example.com'
+        }
+      });
+
+      // Mock unsupported browser
+      Object.defineProperty(global, 'window', {
+        writable: true,
+        value: {
+          SpeechRecognition: undefined,
+          webkitSpeechRecognition: undefined,
+          speechSynthesis: undefined
+        }
+      });
+
+      Object.defineProperty(global.navigator, 'mediaDevices', {
+        writable: true,
+        value: undefined
+      });
+
+      const controller = new AudioController();
+      const availability = controller.shouldAudioBeAvailable();
+      
+      expect(availability.available).toBe(false);
+      expect(availability.reasons).toContain('HTTPS is required for audio features');
+      expect(availability.reasons).toContain('Browser does not support speech recognition');
+      expect(availability.reasons).toContain('Browser does not support speech synthesis');
+      expect(availability.reasons).toContain('Browser does not support media device access');
+      
+      controller.destroy();
+    });
+
+    it('should handle errors during speech recognition setup', () => {
+      // Mock SpeechRecognition constructor that throws
+      Object.defineProperty(global, 'SpeechRecognition', {
+        writable: true,
+        value: vi.fn(() => {
+          throw new Error('Recognition setup failed');
+        })
+      });
+
+      const controller = new AudioController();
+      const state = controller.getState();
+      
+      expect(state.isSupported).toBe(false);
+      expect(state.error).toContain('Failed to initialize audio support');
+      
+      controller.destroy();
+    });
+
+    it('should handle permission errors with specific error types', async () => {
+      const permissionErrors = [
+        { name: 'NotAllowedError', expectedMessage: 'Microphone permission denied by user' },
+        { name: 'NotFoundError', expectedMessage: 'No microphone found' },
+        { name: 'NotSupportedError', expectedMessage: 'Microphone not supported' }
+      ];
+
+      for (const { name, expectedMessage } of permissionErrors) {
+        const error = new DOMException('Test error', name);
+        mockGetUserMedia.mockRejectedValueOnce(error);
+
+        await expect(audioController.checkMicrophonePermission()).rejects.toThrow(AudioError);
+        
+        const state = audioController.getState();
+        expect(state.error).toContain(expectedMessage);
+      }
+    });
+
+    it('should handle various speech recognition error types', async () => {
+      await audioController.startRecording();
+
+      const errorTypes = [
+        { error: 'not-allowed', expectedMessage: 'Microphone permission denied' },
+        { error: 'no-speech', expectedMessage: 'No speech detected' },
+        { error: 'audio-capture', expectedMessage: 'Audio capture failed' },
+        { error: 'network', expectedMessage: 'Network error during speech recognition' }
+      ];
+
+      for (const { error, expectedMessage } of errorTypes) {
+        const mockErrorEvent = { error, message: 'Test error' };
+        
+        expect(() => {
+          if (mockSpeechRecognition.onerror) {
+            mockSpeechRecognition.onerror(mockErrorEvent);
+          }
+        }).toThrow(AudioError);
+
+        const state = audioController.getState();
+        expect(state.error).toContain(expectedMessage);
+      }
+    });
+
+    it('should handle text-to-speech errors gracefully', async () => {
+      const utterance = { 
+        onstart: null as any, 
+        onend: null as any, 
+        onerror: null as any 
+      };
+      mockSpeechSynthesisUtterance.mockReturnValue(utterance);
+
+      const speakPromise = audioController.speakText('Hello world');
+      
+      // Simulate error during speech
+      if (utterance.onerror) {
+        const errorEvent = { error: 'synthesis-unavailable' };
+        expect(() => utterance.onerror(errorEvent)).toThrow(AudioError);
+      }
+
+      const state = audioController.getState();
+      expect(state.isPlaying).toBe(false);
+      expect(state.error).toContain('Text-to-speech error');
+    });
+
+    it('should handle errors during stop operations', () => {
+      // Mock methods to throw errors
+      mockSpeechRecognition.stop = vi.fn(() => {
+        throw new Error('Stop failed');
+      });
+      mockSpeechSynthesis.cancel = vi.fn(() => {
+        throw new Error('Cancel failed');
+      });
+
+      // Should not throw errors, but handle them gracefully
+      expect(() => audioController.stopRecording()).not.toThrow();
+      expect(() => audioController.stopSpeaking()).not.toThrow();
+
+      const state = audioController.getState();
+      expect(state.error).toBeDefined();
+    });
+
+    it('should handle errors during pause/resume operations', async () => {
+      const utterance = { 
+        onstart: null as any, 
+        onend: null as any, 
+        onerror: null as any 
+      };
+      mockSpeechSynthesisUtterance.mockReturnValue(utterance);
+
+      await audioController.speakText('Hello world');
+      
+      // Simulate speech starting
+      if (utterance.onstart) {
+        utterance.onstart(new Event('start'));
+      }
+
+      // Mock pause/resume to throw errors
+      mockSpeechSynthesis.pause = vi.fn(() => {
+        throw new Error('Pause failed');
+      });
+      mockSpeechSynthesis.resume = vi.fn(() => {
+        throw new Error('Resume failed');
+      });
+
+      // Should handle errors gracefully
+      expect(() => audioController.pauseSpeaking()).not.toThrow();
+      expect(() => audioController.resumeSpeaking()).not.toThrow();
+
+      const state = audioController.getState();
+      expect(state.error).toBeDefined();
+    });
+  });
 });

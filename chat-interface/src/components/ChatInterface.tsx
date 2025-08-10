@@ -1,9 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStateManager } from '../hooks/useStateManager';
 import { MessageList } from './MessageList';
 import { InputArea } from './InputArea';
 import { AudioController } from '../services/AudioController';
+import { ErrorBoundary, AudioErrorBoundary, LangChainErrorBoundary } from './ErrorBoundary';
+import { AudioFallback, LangChainFallback, NetworkStatus, LoadingFallback } from './FallbackUI';
+import { NetworkErrorHandler } from '../services/NetworkErrorHandler';
 import './ChatInterface.css';
+import './ErrorBoundary.css';
+import './FallbackUI.css';
 
 interface ChatInterfaceProps {
   className?: string;
@@ -24,6 +29,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
   } = useStateManager();
   
   const audioControllerRef = useRef<AudioController | null>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [audioDisabled, setAudioDisabled] = useState(false);
+
+  // Setup network monitoring
+  useEffect(() => {
+    const cleanup = NetworkErrorHandler.setupConnectionMonitoring(
+      () => setIsOnline(true),
+      () => setIsOnline(false)
+    );
+
+    return cleanup;
+  }, []);
 
   // Initialize LangChain service and AudioController on component mount
   useEffect(() => {
@@ -45,21 +62,27 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
 
   // Initialize AudioController
   useEffect(() => {
-    if (!audioControllerRef.current) {
-      audioControllerRef.current = new AudioController();
-      
-      // Set up audio state callback
-      audioControllerRef.current.setStateChangeCallback((audioState) => {
-        updateAudioState(audioState);
-      });
-      
-      // Set up transcription callback to update input
-      audioControllerRef.current.setTranscriptionCallback((text) => {
-        updateCurrentInput(text);
-      });
-      
-      // Initialize audio state
-      updateAudioState(audioControllerRef.current.getState());
+    if (!audioControllerRef.current && !audioDisabled) {
+      try {
+        audioControllerRef.current = new AudioController();
+        
+        // Set up audio state callback
+        audioControllerRef.current.setStateChangeCallback((audioState) => {
+          updateAudioState(audioState);
+        });
+        
+        // Set up transcription callback to update input
+        audioControllerRef.current.setTranscriptionCallback((text) => {
+          updateCurrentInput(text);
+        });
+        
+        // Initialize audio state
+        updateAudioState(audioControllerRef.current.getState());
+      } catch (error) {
+        console.error('Failed to initialize AudioController:', error);
+        setAudioDisabled(true);
+        updateError('Audio features are not available');
+      }
     }
 
     return () => {
@@ -68,25 +91,24 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
         audioControllerRef.current = null;
       }
     };
-  }, [updateAudioState, updateCurrentInput]);
+  }, [updateAudioState, updateCurrentInput, audioDisabled]);
 
   if (!state) {
     return (
-      <div className={`chat-interface loading ${className}`}>
-        <div className="loading-message">Initializing chat...</div>
-      </div>
+      <LoadingFallback 
+        message="Initializing chat..." 
+        className={`chat-interface loading ${className}`}
+      />
     );
   }
 
   // Show initialization loading state
   if (!state.langChainState.isInitialized && state.isLoading) {
     return (
-      <div className={`chat-interface loading ${className}`}>
-        <div className="loading-message">
-          <div className="loading-spinner">⏳</div>
-          <p>Initializing AI model...</p>
-        </div>
-      </div>
+      <LoadingFallback 
+        message="Initializing AI model..." 
+        className={`chat-interface loading ${className}`}
+      />
     );
   }
 
@@ -195,47 +217,145 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
     console.log('Loading more history...');
   };
 
+  const handleAudioError = (error: Error, errorInfo: React.ErrorInfo) => {
+    console.error('Audio error boundary caught error:', error, errorInfo);
+    setAudioDisabled(true);
+    updateError('Audio features have been disabled due to an error');
+  };
+
+  const handleLangChainError = (error: Error, errorInfo: React.ErrorInfo) => {
+    console.error('LangChain error boundary caught error:', error, errorInfo);
+    updateError('AI model encountered an error');
+  };
+
+  const handleRetryAudio = async () => {
+    if (audioControllerRef.current) {
+      try {
+        const recovered = await audioControllerRef.current.recoverFromError();
+        if (recovered) {
+          setAudioDisabled(false);
+          updateError(undefined);
+        }
+      } catch (error) {
+        console.error('Failed to recover audio:', error);
+      }
+    }
+  };
+
+  const handleRetryLangChain = async () => {
+    try {
+      await initializeLangChain();
+      updateError(undefined);
+    } catch (error) {
+      console.error('Failed to retry LangChain initialization:', error);
+    }
+  };
+
+  const handleResetLangChain = () => {
+    // This would reset the LangChain service
+    // Implementation depends on state manager capabilities
+    updateError(undefined);
+    console.log('Resetting LangChain service...');
+  };
+
+  const handleDismissError = () => {
+    updateError(undefined);
+  };
+
   return (
-    <div className={`chat-interface ${className}`}>
-      <div className="chat-header">
-        <h1>AI Chat Interface</h1>
-        {state.error && (
-          <div className="error-banner">
-            <span className="error-text">{state.error}</span>
-            <button 
-              className="error-dismiss"
-              onClick={() => updateError(undefined)}
-              aria-label="Dismiss error"
-            >
-              ×
-            </button>
-          </div>
-        )}
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('Main error boundary caught error:', error, errorInfo);
+        updateError('An unexpected error occurred');
+      }}
+      className={className}
+    >
+      <div className={`chat-interface ${className}`}>
+        <NetworkStatus isOnline={isOnline} />
+        
+        <div className="chat-header">
+          <h1>AI Chat Interface</h1>
+          {state.error && (
+            <div className="error-banner">
+              <span className="error-text">{state.error}</span>
+              <button 
+                className="error-dismiss"
+                onClick={handleDismissError}
+                aria-label="Dismiss error"
+              >
+                ×
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* LangChain Error Handling */}
+        <LangChainErrorBoundary
+          langChainState={state.langChainState}
+          onError={handleLangChainError}
+          onModelReset={handleResetLangChain}
+        >
+          <LangChainFallback
+            langChainState={state.langChainState}
+            error={!state.langChainState.isInitialized ? state.error : undefined}
+            onRetry={handleRetryLangChain}
+            onReset={handleResetLangChain}
+          />
+        </LangChainErrorBoundary>
+
+        {/* Audio Error Handling */}
+        <AudioErrorBoundary
+          audioState={state.audioState}
+          onError={handleAudioError}
+          onAudioDisabled={() => setAudioDisabled(true)}
+        >
+          <AudioFallback
+            audioState={state.audioState}
+            onRetry={handleRetryAudio}
+            onDismiss={() => setAudioDisabled(true)}
+          />
+        </AudioErrorBoundary>
+
+        <ErrorBoundary
+          fallback={
+            <div className="message-list-error">
+              <p>Unable to display messages. Please refresh the page.</p>
+            </div>
+          }
+        >
+          <MessageList 
+            messages={state.messages}
+            isLoading={state.isLoading}
+            autoScroll={state.settings.autoScroll}
+            audioState={state.audioState}
+            voiceSettings={state.settings.voiceSettings}
+            onPlayAudio={handlePlayAudio}
+            onPauseAudio={handlePauseAudio}
+            onResumeAudio={handleResumeAudio}
+            onStopAudio={handleStopAudio}
+            onScrollToTop={handleScrollToTop}
+          />
+        </ErrorBoundary>
+
+        <ErrorBoundary
+          fallback={
+            <div className="input-area-error">
+              <p>Input area is temporarily unavailable. Please refresh the page.</p>
+            </div>
+          }
+        >
+          <InputArea
+            value={state.currentInput}
+            onChange={handleInputChange}
+            onSubmit={handleSubmit}
+            onToggleRecording={handleToggleRecording}
+            isLoading={state.isLoading}
+            isRecording={state.audioState.isRecording}
+            audioEnabled={state.settings.audioEnabled && state.audioState.isSupported && !audioDisabled}
+            placeholder="Type your message..."
+          />
+        </ErrorBoundary>
       </div>
-
-      <MessageList 
-        messages={state.messages}
-        isLoading={state.isLoading}
-        autoScroll={state.settings.autoScroll}
-        audioState={state.audioState}
-        voiceSettings={state.settings.voiceSettings}
-        onPlayAudio={handlePlayAudio}
-        onPauseAudio={handlePauseAudio}
-        onResumeAudio={handleResumeAudio}
-        onStopAudio={handleStopAudio}
-        onScrollToTop={handleScrollToTop}
-      />
-
-      <InputArea
-        value={state.currentInput}
-        onChange={handleInputChange}
-        onSubmit={handleSubmit}
-        onToggleRecording={handleToggleRecording}
-        isLoading={state.isLoading}
-        isRecording={state.audioState.isRecording}
-        audioEnabled={state.settings.audioEnabled && state.audioState.isSupported}
-        placeholder="Type your message..."
-      />
-    </div>
+    </ErrorBoundary>
   );
 };

@@ -15,8 +15,11 @@ import {
   ChainType,
   LangChainError,
   LangChainErrorCode,
-  MessageStatus
+  MessageStatus,
+  NetworkError,
+  NetworkErrorCode
 } from '../types';
+import { NetworkErrorHandler, type NetworkRequestOptions } from './NetworkErrorHandler';
 
 export class LangChainService {
   private chain: ConversationChain | null = null;
@@ -41,6 +44,9 @@ export class LangChainService {
    */
   async initialize(config: LangChainConfig): Promise<void> {
     try {
+      // Validate configuration first
+      this.validateConfig(config);
+      
       this.config = config;
       
       // Initialize the model
@@ -64,6 +70,13 @@ export class LangChainService {
       };
 
     } catch (error) {
+      // Reset state on initialization failure
+      this.dispose();
+      
+      if (error instanceof LangChainError) {
+        throw error;
+      }
+      
       throw new LangChainError(
         'Failed to initialize LangChain service',
         LangChainErrorCode.INITIALIZATION_FAILED,
@@ -172,9 +185,9 @@ export class LangChainService {
   }
 
   /**
-   * Send a message through the conversation chain
+   * Send a message through the conversation chain with retry logic
    */
-  async sendMessage(message: string): Promise<string> {
+  async sendMessage(message: string, options?: NetworkRequestOptions): Promise<string> {
     if (!this.isInitialized()) {
       throw new LangChainError(
         'LangChain service not initialized',
@@ -183,19 +196,96 @@ export class LangChainService {
     }
 
     try {
-      const response = await this.chain!.call({ input: message });
+      // Use network error handler for retry logic
+      const response = await NetworkErrorHandler.executeWithRetry(
+        async () => {
+          if (!this.chain) {
+            throw new LangChainError(
+              'Conversation chain not available',
+              LangChainErrorCode.INITIALIZATION_FAILED
+            );
+          }
+
+          try {
+            return await this.chain.call({ input: message });
+          } catch (error) {
+            // Convert LangChain errors to appropriate error types
+            if (this.isNetworkError(error)) {
+              throw new NetworkError(
+                'AI model request failed',
+                NetworkErrorCode.CONNECTION_FAILED,
+                undefined,
+                error as Error
+              );
+            }
+            throw error;
+          }
+        },
+        {
+          timeout: options?.timeout || 30000, // 30 second default timeout
+          retryConfig: {
+            maxRetries: 2,
+            baseDelay: 2000,
+            ...options?.retryConfig
+          },
+          signal: options?.signal
+        }
+      );
       
       // Update token count (approximate)
       this.state.tokenCount += this.estimateTokenCount(message + response.response);
       
       // Update memory size
       if (this.memory) {
-        const memoryVariables = await this.memory.loadMemoryVariables({});
-        this.state.memorySize = JSON.stringify(memoryVariables).length;
+        try {
+          const memoryVariables = await this.memory.loadMemoryVariables({});
+          this.state.memorySize = JSON.stringify(memoryVariables).length;
+        } catch (memoryError) {
+          console.warn('Failed to update memory size:', memoryError);
+          // Don't fail the entire request for memory size calculation
+        }
       }
 
       return response.response;
     } catch (error) {
+      // Enhanced error handling with specific error types
+      if (error instanceof NetworkError) {
+        throw new LangChainError(
+          `Network error during conversation: ${error.message}`,
+          LangChainErrorCode.CONVERSATION_FAILED,
+          error
+        );
+      }
+
+      if (error instanceof LangChainError) {
+        throw error;
+      }
+
+      // Handle specific API errors
+      if (this.isRateLimitError(error)) {
+        throw new LangChainError(
+          'Rate limit exceeded. Please wait before sending another message.',
+          LangChainErrorCode.CONVERSATION_FAILED,
+          error as Error
+        );
+      }
+
+      if (this.isAuthenticationError(error)) {
+        throw new LangChainError(
+          'Authentication failed. Please check your API credentials.',
+          LangChainErrorCode.MODEL_NOT_AVAILABLE,
+          error as Error
+        );
+      }
+
+      if (this.isModelUnavailableError(error)) {
+        throw new LangChainError(
+          'AI model is currently unavailable. Please try again later.',
+          LangChainErrorCode.MODEL_NOT_AVAILABLE,
+          error as Error
+        );
+      }
+
       throw new LangChainError(
         'Failed to send message',
         LangChainErrorCode.CONVERSATION_FAILED,
@@ -338,6 +428,160 @@ export class LangChainService {
   private estimateTokenCount(text: string): number {
     // Rough estimation: ~4 characters per token
     return Math.ceil(text.length / 4);
+  }
+
+  /**
+   * Check if an error is a network-related error
+   */
+  private isNetworkError(error: any): boolean {
+    if (!error) return false;
+    
+    const errorMessage = error.message?.toLowerCase() || '';
+    const errorCode = error.code?.toLowerCase() || '';
+    
+    return (
+      errorMessage.includes('network') ||
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('connection') ||
+      errorMessage.includes('fetch') ||
+      errorCode.includes('network') ||
+      errorCode.includes('timeout') ||
+      error.name === 'NetworkError' ||
+      error.name === 'TimeoutError'
+    );
+  }
+
+  /**
+   * Check if an error is a rate limit error
+   */
+  private isRateLimitError(error: any): boolean {
+    if (!error) return false;
+    
+    const errorMessage = error.message?.toLowerCase() || '';
+    const statusCode = error.status || error.statusCode;
+    
+    return (
+      statusCode === 429 ||
+      errorMessage.includes('rate limit') ||
+      errorMessage.includes('too many requests') ||
+      errorMessage.includes('quota exceeded')
+    );
+  }
+
+  /**
+   * Check if an error is an authentication error
+   */
+  private isAuthenticationError(error: any): boolean {
+    if (!error) return false;
+    
+    const errorMessage = error.message?.toLowerCase() || '';
+    const statusCode = error.status || error.statusCode;
+    
+    return (
+      statusCode === 401 ||
+      statusCode === 403 ||
+      errorMessage.includes('unauthorized') ||
+      errorMessage.includes('authentication') ||
+      errorMessage.includes('api key') ||
+      errorMessage.includes('invalid credentials')
+    );
+  }
+
+  /**
+   * Check if an error indicates model unavailability
+   */
+  private isModelUnavailableError(error: any): boolean {
+    if (!error) return false;
+    
+    const errorMessage = error.message?.toLowerCase() || '';
+    const statusCode = error.status || error.statusCode;
+    
+    return (
+      statusCode === 503 ||
+      statusCode === 502 ||
+      statusCode === 500 ||
+      errorMessage.includes('service unavailable') ||
+      errorMessage.includes('model not available') ||
+      errorMessage.includes('server error') ||
+      errorMessage.includes('internal error')
+    );
+  }
+
+  /**
+   * Validate configuration before initialization
+   */
+  private validateConfig(config: LangChainConfig): void {
+    if (!config) {
+      throw new LangChainError(
+        'Configuration is required',
+        LangChainErrorCode.CONFIGURATION_ERROR
+      );
+    }
+
+    if (!config.model) {
+      throw new LangChainError(
+        'Model configuration is required',
+        LangChainErrorCode.CONFIGURATION_ERROR
+      );
+    }
+
+    if (!config.model.provider || !config.model.modelName) {
+      throw new LangChainError(
+        'Model provider and name are required',
+        LangChainErrorCode.CONFIGURATION_ERROR
+      );
+    }
+
+    if (config.model.temperature < 0 || config.model.temperature > 2) {
+      throw new LangChainError(
+        'Temperature must be between 0 and 2',
+        LangChainErrorCode.CONFIGURATION_ERROR
+      );
+    }
+
+    if (config.model.maxTokens <= 0) {
+      throw new LangChainError(
+        'Max tokens must be greater than 0',
+        LangChainErrorCode.CONFIGURATION_ERROR
+      );
+    }
+  }
+
+  /**
+   * Get health status of the service
+   */
+  getHealthStatus(): {
+    isHealthy: boolean;
+    issues: string[];
+    lastError?: string;
+  } {
+    const issues: string[] = [];
+    
+    if (!this.state.isInitialized) {
+      issues.push('Service not initialized');
+    }
+    
+    if (!this.chain) {
+      issues.push('Conversation chain not available');
+    }
+    
+    if (!this.model) {
+      issues.push('AI model not available');
+    }
+    
+    if (!this.memory) {
+      issues.push('Memory not available');
+    }
+
+    if (!NetworkErrorHandler.isOnline()) {
+      issues.push('Network connection unavailable');
+    }
+
+    return {
+      isHealthy: issues.length === 0,
+      issues,
+      lastError: undefined // Could be enhanced to track last error
+    };
   }
 
   /**
