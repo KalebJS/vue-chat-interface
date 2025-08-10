@@ -4,7 +4,8 @@ import type {
   AudioState, 
   LangChainState, 
   AppSettings,
-  LangChainConfig
+  LangChainConfig,
+  StreamingOptions
 } from '../types';
 import {
   ModelProvider,
@@ -166,6 +167,147 @@ export class StateManager {
     );
     
     this.setState({ messages: updatedMessages });
+  }
+
+  /**
+   * Start streaming for a message
+   */
+  startMessageStreaming(messageId: string): void {
+    this.updateMessage(messageId, { 
+      isStreaming: true, 
+      streamingComplete: false 
+    });
+    this.updateLangChainState({ 
+      isStreaming: true, 
+      streamingMessageId: messageId 
+    });
+  }
+
+  /**
+   * Update streaming message with new token
+   */
+  updateStreamingMessage(messageId: string, token: string): void {
+    const message = this.state.messages.find(msg => msg.id === messageId);
+    if (message && message.isStreaming) {
+      this.updateMessage(messageId, { 
+        text: message.text + token 
+      });
+    }
+  }
+
+  /**
+   * Complete streaming for a message
+   */
+  completeMessageStreaming(messageId: string, finalText?: string): void {
+    const updates: Partial<Message> = {
+      isStreaming: false,
+      streamingComplete: true,
+      status: MessageStatus.SENT
+    };
+    
+    if (finalText !== undefined) {
+      updates.text = finalText;
+    }
+    
+    this.updateMessage(messageId, updates);
+    this.updateLangChainState({ 
+      isStreaming: false, 
+      streamingMessageId: undefined 
+    });
+  }
+
+  /**
+   * Handle streaming error
+   */
+  handleStreamingError(messageId: string, error: string): void {
+    this.updateMessage(messageId, { 
+      isStreaming: false,
+      streamingComplete: false,
+      status: MessageStatus.ERROR 
+    });
+    this.updateLangChainState({ 
+      isStreaming: false, 
+      streamingMessageId: undefined 
+    });
+    this.updateError(error);
+  }
+
+  /**
+   * Send a message with streaming support
+   */
+  async sendMessageWithStreaming(
+    messageText: string, 
+    enableStreaming: boolean = true,
+    abortSignal?: AbortSignal
+  ): Promise<void> {
+    // Add user message
+    const userMessage: Message = {
+      id: this.generateMessageId(),
+      text: messageText,
+      sender: 'user',
+      timestamp: new Date(),
+      status: MessageStatus.SENT
+    };
+    
+    this.setState({ 
+      messages: [...this.state.messages, userMessage],
+      isLoading: true,
+      currentInput: '',
+      error: undefined
+    });
+
+    // Create AI message placeholder
+    const aiMessageId = this.generateMessageId();
+    const aiMessage: Message = {
+      id: aiMessageId,
+      text: '',
+      sender: 'ai',
+      timestamp: new Date(),
+      status: MessageStatus.SENDING,
+      isStreaming: enableStreaming,
+      streamingComplete: false
+    };
+    
+    this.setState({ 
+      messages: [...this.state.messages, aiMessage]
+    });
+
+    try {
+      if (enableStreaming && this.langChainService.isInitialized()) {
+        // Start streaming
+        this.startMessageStreaming(aiMessageId);
+
+        const streamingOptions: StreamingOptions = {
+          onToken: (token: string) => {
+            this.updateStreamingMessage(aiMessageId, token);
+          },
+          onComplete: (fullResponse: string) => {
+            this.completeMessageStreaming(aiMessageId, fullResponse);
+          },
+          onError: (error: Error) => {
+            this.handleStreamingError(aiMessageId, error.message);
+          },
+          signal: abortSignal
+        };
+
+        await this.langChainService.sendMessageStreaming(
+          messageText, 
+          streamingOptions
+        );
+      } else {
+        // Fallback to regular message sending
+        const response = await this.langChainService.sendMessage(messageText);
+        this.updateMessage(aiMessageId, {
+          text: response,
+          status: MessageStatus.SENT
+        });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+      this.handleStreamingError(aiMessageId, errorMessage);
+    } finally {
+      this.setState({ isLoading: false });
+    }
   }
 
   /**

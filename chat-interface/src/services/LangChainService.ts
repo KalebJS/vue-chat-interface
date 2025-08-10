@@ -7,7 +7,8 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { 
   LangChainConfig, 
   LangChainState, 
-  Message
+  Message,
+  StreamingOptions
 } from '../types';
 import {
   ModelProvider, 
@@ -185,7 +186,7 @@ export class LangChainService {
   }
 
   /**
-   * Send a message through the conversation chain with retry logic
+   * Send a message through the conversation chain with streaming support
    */
   async sendMessage(message: string, options?: NetworkRequestOptions): Promise<string> {
     if (!this.isInitialized()) {
@@ -292,6 +293,281 @@ export class LangChainService {
         error as Error
       );
     }
+  }
+
+  /**
+   * Send a message with streaming response support
+   */
+  async sendMessageStreaming(
+    message: string, 
+    streamingOptions: StreamingOptions,
+    networkOptions?: NetworkRequestOptions
+  ): Promise<string> {
+    if (!this.isInitialized()) {
+      throw new LangChainError(
+        'LangChain service not initialized',
+        LangChainErrorCode.INITIALIZATION_FAILED
+      );
+    }
+
+    if (!this.chain) {
+      throw new LangChainError(
+        'Conversation chain not available',
+        LangChainErrorCode.INITIALIZATION_FAILED
+      );
+    }
+
+    // Set streaming state
+    this.state.isStreaming = true;
+    
+    let fullResponse = '';
+    let aborted = false;
+
+    try {
+      // Check if the signal is already aborted
+      if (streamingOptions.signal?.aborted) {
+        throw new Error('Request was aborted before starting');
+      }
+
+      // Set up abort handling
+      const abortHandler = () => {
+        aborted = true;
+        this.state.isStreaming = false;
+      };
+      
+      streamingOptions.signal?.addEventListener('abort', abortHandler);
+
+      // Use network error handler for retry logic with streaming
+      const response = await NetworkErrorHandler.executeWithRetry(
+        async () => {
+          if (aborted) {
+            throw new Error('Request was aborted');
+          }
+
+          // For streaming, we need to handle the response differently
+          // LangChain's streaming support varies by model provider
+          if (this.model && 'stream' in this.model && typeof this.model.stream === 'function') {
+            // Use native streaming if available
+            return await this.handleNativeStreaming(message, streamingOptions);
+          } else {
+            // Fallback to simulated streaming for models that don't support it
+            return await this.handleSimulatedStreaming(message, streamingOptions);
+          }
+        },
+        {
+          timeout: networkOptions?.timeout || 60000, // Longer timeout for streaming
+          retryConfig: {
+            maxRetries: 1, // Fewer retries for streaming to avoid confusion
+            baseDelay: 2000,
+            ...networkOptions?.retryConfig
+          },
+          signal: streamingOptions.signal
+        }
+      );
+
+      fullResponse = response;
+
+      // Update token count (approximate)
+      this.state.tokenCount += this.estimateTokenCount(message + fullResponse);
+      
+      // Update memory size
+      if (this.memory) {
+        try {
+          const memoryVariables = await this.memory.loadMemoryVariables({});
+          this.state.memorySize = JSON.stringify(memoryVariables).length;
+        } catch (memoryError) {
+          console.warn('Failed to update memory size:', memoryError);
+        }
+      }
+
+      // Call completion callback
+      if (streamingOptions.onComplete && !aborted) {
+        streamingOptions.onComplete(fullResponse);
+      }
+
+      return fullResponse;
+
+    } catch (error) {
+      // Call error callback
+      if (streamingOptions.onError && !aborted) {
+        streamingOptions.onError(error as Error);
+      }
+
+      // Enhanced error handling
+      if (error instanceof NetworkError) {
+        throw new LangChainError(
+          `Network error during streaming conversation: ${error.message}`,
+          LangChainErrorCode.STREAMING_ERROR,
+          error
+        );
+      }
+
+      if (error instanceof LangChainError) {
+        throw error;
+      }
+
+      // Handle specific streaming errors
+      if (this.isStreamingError(error)) {
+        throw new LangChainError(
+          'Streaming response was interrupted or failed',
+          LangChainErrorCode.STREAMING_ERROR,
+          error as Error
+        );
+      }
+
+      if (this.isRateLimitError(error)) {
+        throw new LangChainError(
+          'Rate limit exceeded during streaming. Please wait before sending another message.',
+          LangChainErrorCode.CONVERSATION_FAILED,
+          error as Error
+        );
+      }
+
+      if (this.isAuthenticationError(error)) {
+        throw new LangChainError(
+          'Authentication failed during streaming. Please check your API credentials.',
+          LangChainErrorCode.MODEL_NOT_AVAILABLE,
+          error as Error
+        );
+      }
+
+      throw new LangChainError(
+        'Failed to send streaming message',
+        LangChainErrorCode.STREAMING_ERROR,
+        error as Error
+      );
+    } finally {
+      // Always reset streaming state
+      this.state.isStreaming = false;
+      
+      // Clean up abort listener
+      if (streamingOptions.signal) {
+        streamingOptions.signal.removeEventListener('abort', () => {});
+      }
+    }
+  }
+
+  /**
+   * Handle native streaming for models that support it
+   */
+  private async handleNativeStreaming(
+    message: string, 
+    streamingOptions: StreamingOptions
+  ): Promise<string> {
+    if (!this.chain) {
+      throw new Error('Conversation chain not available');
+    }
+
+    let fullResponse = '';
+
+    try {
+      // For models that support streaming, we need to use the streaming interface
+      // This is a simplified implementation - actual streaming would depend on the specific model
+      const stream = await this.chain.stream({ input: message });
+      
+      for await (const chunk of stream) {
+        if (streamingOptions.signal?.aborted) {
+          break;
+        }
+
+        // Extract text from chunk (format varies by model)
+        const token = this.extractTokenFromChunk(chunk);
+        if (token) {
+          fullResponse += token;
+          
+          // Call token callback
+          if (streamingOptions.onToken) {
+            streamingOptions.onToken(token);
+          }
+        }
+      }
+
+      return fullResponse;
+    } catch (error) {
+      // If streaming fails, fall back to regular call
+      console.warn('Native streaming failed, falling back to regular call:', error);
+      const response = await this.chain.call({ input: message });
+      return response.response;
+    }
+  }
+
+  /**
+   * Handle simulated streaming for models that don't support native streaming
+   */
+  private async handleSimulatedStreaming(
+    message: string, 
+    streamingOptions: StreamingOptions
+  ): Promise<string> {
+    if (!this.chain) {
+      throw new Error('Conversation chain not available');
+    }
+
+    // Get the full response first
+    const response = await this.chain.call({ input: message });
+    const fullText = response.response;
+
+    // Simulate streaming by sending tokens progressively
+    const words = fullText.split(' ');
+    let currentText = '';
+
+    for (let i = 0; i < words.length; i++) {
+      if (streamingOptions.signal?.aborted) {
+        break;
+      }
+
+      const word = words[i];
+      const token = i === 0 ? word : ' ' + word;
+      currentText += token;
+
+      // Call token callback
+      if (streamingOptions.onToken) {
+        streamingOptions.onToken(token);
+      }
+
+      // Add a small delay to simulate streaming
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    return fullText;
+  }
+
+  /**
+   * Extract token from streaming chunk (format varies by model)
+   */
+  private extractTokenFromChunk(chunk: any): string {
+    // This is a simplified implementation
+    // Actual token extraction would depend on the specific model's chunk format
+    if (typeof chunk === 'string') {
+      return chunk;
+    }
+    
+    if (chunk && typeof chunk === 'object') {
+      // Try common chunk formats
+      if (chunk.text) return chunk.text;
+      if (chunk.content) return chunk.content;
+      if (chunk.token) return chunk.token;
+      if (chunk.response) return chunk.response;
+    }
+    
+    return '';
+  }
+
+  /**
+   * Check if an error is a streaming-specific error
+   */
+  private isStreamingError(error: any): boolean {
+    if (!error) return false;
+    
+    const errorMessage = error.message?.toLowerCase() || '';
+    
+    return (
+      errorMessage.includes('stream') ||
+      errorMessage.includes('streaming') ||
+      errorMessage.includes('connection interrupted') ||
+      errorMessage.includes('connection closed') ||
+      errorMessage.includes('aborted') ||
+      error.name === 'AbortError'
+    );
   }
 
   /**

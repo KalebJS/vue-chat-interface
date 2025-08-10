@@ -56,7 +56,10 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   ].filter(Boolean).join(' ');
 
   return (
-    <div className={messageClasses}>
+    <div 
+      className={messageClasses}
+      data-streaming={message.isStreaming || false}
+    >
       <div className="message-content">
         <div className="message-header">
           <span className="message-sender">
@@ -71,6 +74,15 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         </div>
         <div className="message-text">
           {message.text}
+          {message.isStreaming && (
+            <span className="streaming-indicator" aria-label="AI is typing">
+              <span className="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            </span>
+          )}
         </div>
         {/* Show audio controls for AI messages or if audioUrl exists */}
         {(message.sender === 'ai' || message.audioUrl) && (

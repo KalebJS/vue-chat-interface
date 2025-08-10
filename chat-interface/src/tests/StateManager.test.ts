@@ -505,6 +505,191 @@ describe('StateManager', () => {
     });
   });
 
+  describe('Streaming functionality', () => {
+    beforeEach(() => {
+      vi.mocked(mockLangChainService.isInitialized).mockReturnValue(true);
+      vi.mocked(mockLangChainService.sendMessageStreaming).mockImplementation(
+        async (message, options) => {
+          // Simulate streaming tokens
+          const words = 'Hello there friend'.split(' ');
+          for (const word of words) {
+            const token = word === words[0] ? word : ' ' + word;
+            options.onToken?.(token);
+          }
+          const fullResponse = 'Hello there friend';
+          options.onComplete?.(fullResponse);
+          return fullResponse;
+        }
+      );
+    });
+
+    it('should start message streaming', () => {
+      stateManager.addMessage({
+        text: '',
+        sender: 'ai',
+        status: MessageStatus.SENDING
+      });
+      
+      const messageId = stateManager.getState().messages[0].id;
+      stateManager.startMessageStreaming(messageId);
+      
+      const state = stateManager.getState();
+      const message = state.messages[0];
+      
+      expect(message.isStreaming).toBe(true);
+      expect(message.streamingComplete).toBe(false);
+      expect(state.langChainState.isStreaming).toBe(true);
+      expect(state.langChainState.streamingMessageId).toBe(messageId);
+    });
+
+    it('should update streaming message with tokens', () => {
+      stateManager.addMessage({
+        text: '',
+        sender: 'ai',
+        status: MessageStatus.SENDING,
+        isStreaming: true
+      });
+      
+      const messageId = stateManager.getState().messages[0].id;
+      
+      stateManager.updateStreamingMessage(messageId, 'Hello');
+      stateManager.updateStreamingMessage(messageId, ' world');
+      
+      const message = stateManager.getState().messages[0];
+      expect(message.text).toBe('Hello world');
+    });
+
+    it('should complete message streaming', () => {
+      stateManager.addMessage({
+        text: 'Hello',
+        sender: 'ai',
+        status: MessageStatus.SENDING,
+        isStreaming: true
+      });
+      
+      const messageId = stateManager.getState().messages[0].id;
+      stateManager.completeMessageStreaming(messageId, 'Hello world complete');
+      
+      const state = stateManager.getState();
+      const message = state.messages[0];
+      
+      expect(message.text).toBe('Hello world complete');
+      expect(message.isStreaming).toBe(false);
+      expect(message.streamingComplete).toBe(true);
+      expect(message.status).toBe(MessageStatus.SENT);
+      expect(state.langChainState.isStreaming).toBe(false);
+      expect(state.langChainState.streamingMessageId).toBeUndefined();
+    });
+
+    it('should handle streaming errors', () => {
+      stateManager.addMessage({
+        text: 'Hello',
+        sender: 'ai',
+        status: MessageStatus.SENDING,
+        isStreaming: true
+      });
+      
+      const messageId = stateManager.getState().messages[0].id;
+      stateManager.handleStreamingError(messageId, 'Streaming failed');
+      
+      const state = stateManager.getState();
+      const message = state.messages[0];
+      
+      expect(message.isStreaming).toBe(false);
+      expect(message.streamingComplete).toBe(false);
+      expect(message.status).toBe(MessageStatus.ERROR);
+      expect(state.langChainState.isStreaming).toBe(false);
+      expect(state.langChainState.streamingMessageId).toBeUndefined();
+      expect(state.error).toBe('Streaming failed');
+    });
+
+    it('should send message with streaming enabled', async () => {
+      const callback = vi.fn();
+      stateManager.subscribe(callback);
+      
+      await stateManager.sendMessageWithStreaming('Hello AI', true);
+      
+      const state = stateManager.getState();
+      
+      // Should have user message and AI message
+      expect(state.messages).toHaveLength(2);
+      expect(state.messages[0].text).toBe('Hello AI');
+      expect(state.messages[0].sender).toBe('user');
+      expect(state.messages[1].text).toBe('Hello there friend');
+      expect(state.messages[1].sender).toBe('ai');
+      expect(state.messages[1].streamingComplete).toBe(true);
+      
+      expect(mockLangChainService.sendMessageStreaming).toHaveBeenCalledWith(
+        'Hello AI',
+        expect.objectContaining({
+          onToken: expect.any(Function),
+          onComplete: expect.any(Function),
+          onError: expect.any(Function)
+        })
+      );
+    });
+
+    it('should send message with streaming disabled', async () => {
+      vi.mocked(mockLangChainService.sendMessage).mockResolvedValue('Regular response');
+      
+      await stateManager.sendMessageWithStreaming('Hello AI', false);
+      
+      const state = stateManager.getState();
+      
+      // Should have user message and AI message
+      expect(state.messages).toHaveLength(2);
+      expect(state.messages[0].text).toBe('Hello AI');
+      expect(state.messages[0].sender).toBe('user');
+      expect(state.messages[1].text).toBe('Regular response');
+      expect(state.messages[1].sender).toBe('ai');
+      expect(state.messages[1].isStreaming).toBeUndefined();
+      
+      expect(mockLangChainService.sendMessage).toHaveBeenCalledWith('Hello AI');
+      expect(mockLangChainService.sendMessageStreaming).not.toHaveBeenCalled();
+    });
+
+    it('should handle streaming abort signal', async () => {
+      const abortController = new AbortController();
+      
+      vi.mocked(mockLangChainService.sendMessageStreaming).mockImplementation(
+        async (message, options) => {
+          if (options.signal?.aborted) {
+            const error = new Error('Request aborted');
+            options.onError?.(error);
+            throw error;
+          }
+          return 'Response';
+        }
+      );
+      
+      abortController.abort();
+      
+      await expect(
+        stateManager.sendMessageWithStreaming('Hello', true, abortController.signal)
+      ).rejects.toThrow();
+      
+      const state = stateManager.getState();
+      expect(state.messages[1].status).toBe(MessageStatus.ERROR);
+    });
+
+    it('should not update non-streaming messages', () => {
+      stateManager.addMessage({
+        text: 'Hello',
+        sender: 'ai',
+        status: MessageStatus.SENT,
+        isStreaming: false
+      });
+      
+      const messageId = stateManager.getState().messages[0].id;
+      const originalText = stateManager.getState().messages[0].text;
+      
+      stateManager.updateStreamingMessage(messageId, ' world');
+      
+      const message = stateManager.getState().messages[0];
+      expect(message.text).toBe(originalText); // Should not change
+    });
+  });
+
   describe('Cleanup', () => {
     it('should dispose resources properly', () => {
       const callback = vi.fn();

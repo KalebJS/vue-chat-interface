@@ -508,4 +508,141 @@ describe('LangChainService', () => {
       }
     });
   });
+
+  describe('Streaming functionality', () => {
+    beforeEach(async () => {
+      await service.initialize(mockConfig);
+    });
+
+    it('should handle streaming messages with token callbacks', async () => {
+      const tokens: string[] = [];
+      let completedResponse = '';
+      let errorOccurred = false;
+
+      const streamingOptions = {
+        onToken: (token: string) => {
+          tokens.push(token);
+        },
+        onComplete: (response: string) => {
+          completedResponse = response;
+        },
+        onError: (error: Error) => {
+          errorOccurred = true;
+        }
+      };
+
+      const response = await service.sendMessageStreaming('Hello', streamingOptions);
+
+      expect(response).toBe('Mocked chain response');
+      expect(tokens.length).toBeGreaterThan(0);
+      expect(completedResponse).toBe('Mocked chain response');
+      expect(errorOccurred).toBe(false);
+    });
+
+    it('should handle streaming abort signal', async () => {
+      const abortController = new AbortController();
+      const streamingOptions = {
+        onToken: vi.fn(),
+        onComplete: vi.fn(),
+        onError: vi.fn(),
+        signal: abortController.signal
+      };
+
+      // Abort immediately
+      abortController.abort();
+
+      await expect(
+        service.sendMessageStreaming('Hello', streamingOptions)
+      ).rejects.toThrow();
+
+      expect(streamingOptions.onError).toHaveBeenCalled();
+      expect(streamingOptions.onComplete).not.toHaveBeenCalled();
+    });
+
+    it('should handle streaming errors gracefully', async () => {
+      // Mock chain to throw error
+      const mockChain = {
+        call: vi.fn().mockRejectedValue(new Error('Streaming failed')),
+        stream: vi.fn().mockRejectedValue(new Error('Streaming failed'))
+      };
+      (service as any).chain = mockChain;
+
+      let errorCaught = false;
+      const streamingOptions = {
+        onToken: vi.fn(),
+        onComplete: vi.fn(),
+        onError: (error: Error) => {
+          errorCaught = true;
+          expect(error.message).toContain('Streaming failed');
+        }
+      };
+
+      await expect(
+        service.sendMessageStreaming('Hello', streamingOptions)
+      ).rejects.toThrow();
+
+      expect(errorCaught).toBe(true);
+      expect(service.getState().isStreaming).toBe(false);
+    });
+
+    it('should update streaming state during operation', async () => {
+      const streamingOptions = {
+        onToken: vi.fn(),
+        onComplete: vi.fn(),
+        onError: vi.fn()
+      };
+
+      const promise = service.sendMessageStreaming('Hello', streamingOptions);
+      
+      // Check that streaming state is set during operation
+      expect(service.getState().isStreaming).toBe(true);
+
+      await promise;
+
+      expect(service.getState().isStreaming).toBe(false);
+    });
+
+    it('should fall back to regular call when streaming fails', async () => {
+      // Mock stream to fail but call to succeed
+      const mockChain = {
+        call: vi.fn().mockResolvedValue({ response: 'Fallback response' }),
+        stream: vi.fn().mockRejectedValue(new Error('Stream not supported'))
+      };
+      (service as any).chain = mockChain;
+
+      const streamingOptions = {
+        onToken: vi.fn(),
+        onComplete: vi.fn(),
+        onError: vi.fn()
+      };
+
+      const response = await service.sendMessageStreaming('Hello', streamingOptions);
+
+      expect(response).toBe('Fallback response');
+      expect(mockChain.call).toHaveBeenCalled();
+    });
+
+    it('should handle simulated streaming for non-streaming models', async () => {
+      // Mock a model without streaming support
+      const mockChain = {
+        call: vi.fn().mockResolvedValue({ response: 'Hello there friend' })
+      };
+      (service as any).chain = mockChain;
+
+      const tokens: string[] = [];
+      const streamingOptions = {
+        onToken: (token: string) => {
+          tokens.push(token);
+        },
+        onComplete: vi.fn(),
+        onError: vi.fn()
+      };
+
+      const response = await service.sendMessageStreaming('Hello', streamingOptions);
+
+      expect(response).toBe('Hello there friend');
+      expect(tokens.length).toBeGreaterThan(1); // Should have multiple tokens from word splitting
+      expect(tokens.join('')).toBe('Hello there friend');
+    });
+  });
 });

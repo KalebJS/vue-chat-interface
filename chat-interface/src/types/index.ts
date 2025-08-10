@@ -7,6 +7,8 @@ export interface Message {
   timestamp: Date;
   audioUrl?: string;
   status: MessageStatus;
+  isStreaming?: boolean;
+  streamingComplete?: boolean;
 }
 
 export interface AudioState {
@@ -25,6 +27,7 @@ export interface LangChainState {
   tokenCount: number;
   memorySize: number;
   isStreaming: boolean;
+  streamingMessageId?: string;
 }
 
 export interface AppState {
@@ -72,6 +75,14 @@ export interface MemoryConfig {
 export interface ChainConfig {
   type: ChainType;
   verbose?: boolean;
+  streaming?: boolean;
+}
+
+export interface StreamingOptions {
+  onToken?: (token: string) => void;
+  onComplete?: (fullResponse: string) => void;
+  onError?: (error: Error) => void;
+  signal?: AbortSignal;
 }
 
 // Enums and Status Types

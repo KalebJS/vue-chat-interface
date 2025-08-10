@@ -337,4 +337,104 @@ describe('MessageItem', () => {
     );
     expect(container.firstChild).toHaveClass('status-sent');
   });
+
+  describe('Streaming functionality', () => {
+    it('should show streaming indicator for streaming messages', () => {
+      const streamingMessage: Message = {
+        ...mockAiMessage,
+        isStreaming: true,
+        text: 'Hello there'
+      };
+
+      render(
+        <MessageItem
+          message={streamingMessage}
+          audioState={mockAudioState}
+          voiceSettings={mockVoiceSettings}
+          {...mockAudioHandlers}
+        />
+      );
+
+      expect(screen.getByLabelText('AI is typing')).toBeInTheDocument();
+      expect(screen.getByText('Hello there')).toBeInTheDocument();
+    });
+
+    it('should not show streaming indicator for non-streaming messages', () => {
+      const nonStreamingMessage: Message = {
+        ...mockAiMessage,
+        isStreaming: false,
+        text: 'Complete message'
+      };
+
+      render(
+        <MessageItem
+          message={nonStreamingMessage}
+          audioState={mockAudioState}
+          voiceSettings={mockVoiceSettings}
+          {...mockAudioHandlers}
+        />
+      );
+
+      expect(screen.queryByLabelText('AI is typing')).not.toBeInTheDocument();
+      expect(screen.getByText('Complete message')).toBeInTheDocument();
+    });
+
+    it('should set streaming data attribute correctly', () => {
+      const streamingMessage: Message = {
+        ...mockAiMessage,
+        isStreaming: true
+      };
+
+      const { container } = render(
+        <MessageItem
+          message={streamingMessage}
+          audioState={mockAudioState}
+          voiceSettings={mockVoiceSettings}
+          {...mockAudioHandlers}
+        />
+      );
+
+      const messageElement = container.querySelector('.message-item');
+      expect(messageElement).toHaveAttribute('data-streaming', 'true');
+    });
+
+    it('should not set streaming data attribute for non-streaming messages', () => {
+      const nonStreamingMessage: Message = {
+        ...mockAiMessage,
+        isStreaming: false
+      };
+
+      const { container } = render(
+        <MessageItem
+          message={nonStreamingMessage}
+          audioState={mockAudioState}
+          voiceSettings={mockVoiceSettings}
+          {...mockAudioHandlers}
+        />
+      );
+
+      const messageElement = container.querySelector('.message-item');
+      expect(messageElement).toHaveAttribute('data-streaming', 'false');
+    });
+
+    it('should handle undefined streaming state', () => {
+      const messageWithoutStreaming: Message = {
+        ...mockAiMessage
+        // isStreaming is undefined
+      };
+
+      const { container } = render(
+        <MessageItem
+          message={messageWithoutStreaming}
+          audioState={mockAudioState}
+          voiceSettings={mockVoiceSettings}
+          {...mockAudioHandlers}
+        />
+      );
+
+      const messageElement = container.querySelector('.message-item');
+      expect(messageElement).toHaveAttribute('data-streaming', 'false');
+      expect(screen.queryByLabelText('AI is typing')).not.toBeInTheDocument();
+    });
+  });
 });

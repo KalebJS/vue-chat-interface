@@ -126,7 +126,20 @@ export function useStateManager() {
     }
   }, [updateLoadingState, updateError, updateLangChainState, loadConversationHistory]);
 
-  const sendMessage = useCallback(async (message: string) => {
+  const sendMessage = useCallback(async (message: string, enableStreaming: boolean = true) => {
+    if (!stateManagerRef.current) {
+      throw new Error('State manager not initialized');
+    }
+
+    try {
+      await stateManagerRef.current.sendMessageWithStreaming(message, enableStreaming);
+    } catch (error) {
+      // Error handling is done in StateManager
+      throw error;
+    }
+  }, []);
+
+  const sendMessageLegacy = useCallback(async (message: string) => {
     if (!langChainServiceRef.current || !stateManagerRef.current) {
       throw new Error('Services not initialized');
     }
@@ -246,6 +259,7 @@ export function useStateManager() {
     // LangChain methods
     initializeLangChain,
     sendMessage,
+    sendMessageLegacy,
     clearLangChainMemory,
     
     // Services (for advanced usage)
