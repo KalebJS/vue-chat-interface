@@ -219,6 +219,33 @@ export function useStateManager() {
     }
   }, [clearMessages, updateLangChainState, updateError]);
 
+  // Settings methods
+  const resetSettings = useCallback(() => {
+    stateManagerRef.current?.resetSettings();
+  }, []);
+
+  const getAvailableVoices = useCallback(() => {
+    return stateManagerRef.current?.getAvailableVoices() || [];
+  }, []);
+
+  const updateModelConfig = useCallback(async (modelConfig: any) => {
+    if (!langChainServiceRef.current) {
+      throw new Error('LangChain service not initialized');
+    }
+
+    try {
+      await langChainServiceRef.current.updateModelConfig(modelConfig);
+      
+      // Update LangChain state
+      const langChainState = langChainServiceRef.current.getState();
+      updateLangChainState(langChainState);
+      
+    } catch (error) {
+      updateError(error instanceof Error ? error.message : 'Failed to update model configuration');
+      throw error;
+    }
+  }, [updateLangChainState, updateError]);
+
   // Debug utilities
   const getDebugInfo = useCallback(() => {
     return {
@@ -261,6 +288,11 @@ export function useStateManager() {
     sendMessage,
     sendMessageLegacy,
     clearLangChainMemory,
+    
+    // Settings methods
+    resetSettings,
+    getAvailableVoices,
+    updateModelConfig,
     
     // Services (for advanced usage)
     stateManager: stateManagerRef.current,

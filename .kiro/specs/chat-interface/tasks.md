@@ -84,7 +84,7 @@
   - Write tests for error scenarios and fallback behavior
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 2.4, 3.4_
 
-- [ ] 12. Add streaming response support
+- [x] 12. Add streaming response support
   - Implement streaming response handling in LangChain service
   - Create real-time message updates for streaming AI responses
   - Add typing indicators and progressive message display
@@ -92,7 +92,7 @@
   - Write tests for streaming functionality
   - _Requirements: 1.3_
 
-- [ ] 13. Create settings and configuration interface
+- [x] 13. Create settings and configuration interface
   - Build SettingsPanel component for audio and AI model configuration
   - Add voice settings controls (rate, pitch, voice selection)
   - Implement AI model switching and parameter adjustment

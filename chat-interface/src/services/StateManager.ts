@@ -134,9 +134,71 @@ export class StateManager {
   }
 
   updateSettings(settings: Partial<AppSettings>): void {
-    this.setState({ 
-      settings: { ...this.state.settings, ...settings }
-    });
+    const newSettings = { ...this.state.settings, ...settings };
+    
+    // Validate settings before applying
+    const validationErrors = this.validateSettings(newSettings);
+    if (Object.keys(validationErrors).length > 0) {
+      console.warn('Settings validation failed:', validationErrors);
+      // Still apply settings but log warnings
+    }
+    
+    this.setState({ settings: newSettings });
+  }
+
+  /**
+   * Validate settings configuration
+   */
+  private validateSettings(settings: AppSettings): Record<string, string> {
+    const errors: Record<string, string> = {};
+
+    // Voice settings validation
+    if (settings.voiceSettings.rate < 0.1 || settings.voiceSettings.rate > 10) {
+      errors.rate = 'Speech rate must be between 0.1 and 10';
+    }
+
+    if (settings.voiceSettings.pitch < 0 || settings.voiceSettings.pitch > 2) {
+      errors.pitch = 'Speech pitch must be between 0 and 2';
+    }
+
+    // AI model validation
+    if (settings.aiModel.model.temperature < 0 || settings.aiModel.model.temperature > 2) {
+      errors.temperature = 'Temperature must be between 0 and 2';
+    }
+
+    if (settings.aiModel.model.maxTokens < 1 || settings.aiModel.model.maxTokens > 4000) {
+      errors.maxTokens = 'Max tokens must be between 1 and 4000';
+    }
+
+    if (!settings.aiModel.model.modelName.trim()) {
+      errors.modelName = 'Model name is required';
+    }
+
+    // Memory validation
+    if (settings.aiModel.memory.maxTokenLimit && 
+        (settings.aiModel.memory.maxTokenLimit < 100 || settings.aiModel.memory.maxTokenLimit > 10000)) {
+      errors.maxTokenLimit = 'Memory token limit must be between 100 and 10000';
+    }
+
+    return errors;
+  }
+
+  /**
+   * Reset settings to default values
+   */
+  resetSettings(): void {
+    const defaultSettings = this.getInitialState().settings;
+    this.setState({ settings: defaultSettings });
+  }
+
+  /**
+   * Get available speech synthesis voices
+   */
+  getAvailableVoices(): SpeechSynthesisVoice[] {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      return window.speechSynthesis.getVoices();
+    }
+    return [];
   }
 
   updateError(error: string | undefined): void {

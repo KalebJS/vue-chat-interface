@@ -1,0 +1,76 @@
+/* Settings Button Styles */
+
+.settings-button {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.settings-button:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.settings-button:active:not(:disabled) {
+  background-color: #e5e7eb;
+  transform: scale(0.95);
+}
+
+.settings-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.settings-icon {
+  transition: transform 0.2s ease;
+}
+
+.settings-button:hover:not(:disabled) .settings-icon {
+  transform: rotate(45deg);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .settings-button {
+    border-color: #4b5563;
+    color: #9ca3af;
+  }
+  
+  .settings-button:hover:not(:disabled) {
+    background-color: #374151;
+    border-color: #6b7280;
+    color: #d1d5db;
+  }
+  
+  .settings-button:active:not(:disabled) {
+    background-color: #4b5563;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .settings-button {
+    border-width: 2px;
+    border-color: #000;
+  }
+  
+  .settings-button:hover:not(:disabled) {
+    background-color: #000;
+    color: #fff;
+  }
+}

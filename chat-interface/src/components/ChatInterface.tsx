@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useStateManager } from '../hooks/useStateManager';
 import { MessageList } from './MessageList';
 import { InputArea } from './InputArea';
+import { SettingsPanel } from './SettingsPanel';
+import { SettingsButton } from './SettingsButton';
 import { AudioController } from '../services/AudioController';
 import { ErrorBoundary, AudioErrorBoundary, LangChainErrorBoundary } from './ErrorBoundary';
 import { AudioFallback, LangChainFallback, NetworkStatus, LoadingFallback } from './FallbackUI';
@@ -25,12 +27,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
     updateCurrentInput,
     updateError,
     updateAudioState,
-    initializeLangChain
+    updateSettings,
+    initializeLangChain,
+    getAvailableVoices,
+    updateModelConfig
   } = useStateManager();
   
   const audioControllerRef = useRef<AudioController | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [audioDisabled, setAudioDisabled] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   // Setup network monitoring
   useEffect(() => {
@@ -92,6 +99,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
       }
     };
   }, [updateAudioState, updateCurrentInput, audioDisabled]);
+
+  // Load available voices for settings
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = getAvailableVoices();
+      setAvailableVoices(voices);
+    };
+
+    // Load voices immediately
+    loadVoices();
+
+    // Also load when voices change (some browsers load them asynchronously)
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+      return () => {
+        window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+      };
+    }
+  }, [getAvailableVoices]);
 
   if (!state) {
     return (
@@ -262,6 +288,32 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
     updateError(undefined);
   };
 
+  const handleOpenSettings = () => {
+    setIsSettingsOpen(true);
+  };
+
+  const handleCloseSettings = () => {
+    setIsSettingsOpen(false);
+  };
+
+  const handleSettingsChange = async (newSettings: Partial<any>) => {
+    try {
+      // Update settings in state manager
+      updateSettings(newSettings);
+
+      // If AI model configuration changed, update LangChain service
+      if (newSettings.aiModel?.model && state?.langChainState.isInitialized) {
+        await updateModelConfig(newSettings.aiModel.model);
+      }
+
+      // Close settings panel
+      setIsSettingsOpen(false);
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+      updateError(error instanceof Error ? error.message : 'Failed to update settings');
+    }
+  };
+
   return (
     <ErrorBoundary
       onError={(error, errorInfo) => {
@@ -274,7 +326,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
         <NetworkStatus isOnline={isOnline} />
         
         <div className="chat-header">
-          <h1>AI Chat Interface</h1>
+          <div className="chat-title">
+            <h1>AI Chat Interface</h1>
+          </div>
+          <div className="chat-controls">
+            <SettingsButton 
+              onClick={handleOpenSettings}
+              disabled={!state}
+            />
+          </div>
           {state.error && (
             <div className="error-banner">
               <span className="error-text">{state.error}</span>
@@ -355,6 +415,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
             placeholder="Type your message..."
           />
         </ErrorBoundary>
+
+        {/* Settings Panel */}
+        {state && (
+          <SettingsPanel
+            settings={state.settings}
+            onSettingsChange={handleSettingsChange}
+            onClose={handleCloseSettings}
+            isOpen={isSettingsOpen}
+            availableVoices={availableVoices}
+          />
+        )}
       </div>
     </ErrorBoundary>
   );
