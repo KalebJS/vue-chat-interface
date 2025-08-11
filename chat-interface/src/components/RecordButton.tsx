@@ -57,15 +57,18 @@ export const RecordButton: React.FC<RecordButtonProps> = ({
   const isDisabled = isLoading || !audioEnabled;
 
   return (
-    <div className={`record-button-container ${className}`}>
+    <div className={`record-button-container ${className}`} role="group" aria-label="Voice recording">
       <button
         className={`record-button ${isRecording ? 'recording' : ''} ${isDisabled ? 'disabled' : ''}`}
         onClick={handleClick}
         disabled={isDisabled}
-        aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+        aria-label={isRecording ? 'Stop voice recording' : 'Start voice recording'}
+        aria-describedby={isRecording ? "recording-timer" : undefined}
+        aria-pressed={isRecording}
         title={isRecording ? 'Stop recording' : 'Start voice recording'}
+        type="button"
       >
-        <div className="record-button-icon">
+        <div className="record-button-icon" aria-hidden="true">
           {isRecording ? (
             <div className="stop-icon">
               <div className="stop-square"></div>
@@ -79,12 +82,18 @@ export const RecordButton: React.FC<RecordButtonProps> = ({
         </div>
         
         {isRecording && (
-          <div className="recording-pulse-ring"></div>
+          <div className="recording-pulse-ring" aria-hidden="true"></div>
         )}
       </button>
       
       {isRecording && (
-        <div className="recording-timer" aria-live="polite">
+        <div 
+          id="recording-timer"
+          className="recording-timer" 
+          aria-live="polite"
+          aria-label={`Recording time: ${formatTime(recordingTime)}`}
+          role="timer"
+        >
           {formatTime(recordingTime)}
         </div>
       )}

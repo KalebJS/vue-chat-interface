@@ -322,32 +322,42 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
       }}
       className={className}
     >
-      <div className={`chat-interface ${className}`}>
+      <div 
+        className={`chat-interface ${className}`}
+        role="main"
+        aria-label="AI Chat Interface"
+      >
         <NetworkStatus isOnline={isOnline} />
         
-        <div className="chat-header">
+        <header className="chat-header" role="banner">
           <div className="chat-title">
-            <h1>AI Chat Interface</h1>
+            <h1 id="chat-title">AI Chat Interface</h1>
           </div>
-          <div className="chat-controls">
+          <div className="chat-controls" role="toolbar" aria-label="Chat controls">
             <SettingsButton 
               onClick={handleOpenSettings}
               disabled={!state}
             />
           </div>
           {state.error && (
-            <div className="error-banner">
-              <span className="error-text">{state.error}</span>
+            <div 
+              className="error-banner" 
+              role="alert" 
+              aria-live="assertive"
+              aria-describedby="error-text"
+            >
+              <span id="error-text" className="error-text">{state.error}</span>
               <button 
                 className="error-dismiss"
                 onClick={handleDismissError}
-                aria-label="Dismiss error"
+                aria-label="Dismiss error message"
+                title="Close error message"
               >
                 ×
               </button>
             </div>
           )}
-        </div>
+        </header>
 
         {/* LangChain Error Handling */}
         <LangChainErrorBoundary
@@ -378,7 +388,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
 
         <ErrorBoundary
           fallback={
-            <div className="message-list-error">
+            <div className="message-list-error" role="alert">
               <p>Unable to display messages. Please refresh the page.</p>
             </div>
           }
@@ -399,7 +409,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
 
         <ErrorBoundary
           fallback={
-            <div className="input-area-error">
+            <div className="input-area-error" role="alert">
               <p>Input area is temporarily unavailable. Please refresh the page.</p>
             </div>
           }

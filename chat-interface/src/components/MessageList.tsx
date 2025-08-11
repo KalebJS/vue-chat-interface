@@ -101,6 +101,9 @@ export const MessageList: React.FC<MessageListProps> = ({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!containerRef.current) return;
 
+      // Only handle keyboard navigation when the container is focused
+      if (document.activeElement !== containerRef.current) return;
+
       switch (event.key) {
         case 'Home':
           if (event.ctrlKey || event.metaKey) {
@@ -122,6 +125,18 @@ export const MessageList: React.FC<MessageListProps> = ({
           event.preventDefault();
           containerRef.current.scrollBy({ top: containerRef.current.clientHeight * 0.8, behavior: 'smooth' });
           break;
+        case 'ArrowUp':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            containerRef.current.scrollBy({ top: -50, behavior: 'smooth' });
+          }
+          break;
+        case 'ArrowDown':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            containerRef.current.scrollBy({ top: 50, behavior: 'smooth' });
+          }
+          break;
       }
     };
 
@@ -142,6 +157,7 @@ export const MessageList: React.FC<MessageListProps> = ({
         role="log"
         aria-live="polite"
         aria-label="Conversation history"
+        aria-describedby="keyboard-navigation-help"
       >
         {/* Loading indicator for history at top */}
         {isNearTop && messages.length > 0 && (
@@ -199,8 +215,8 @@ export const MessageList: React.FC<MessageListProps> = ({
       )}
 
       {/* Navigation hint for keyboard users */}
-      <div className="sr-only" aria-live="polite">
-        Use Ctrl+Home to scroll to top, Ctrl+End to scroll to bottom, Page Up/Down to navigate
+      <div className="sr-only" aria-live="polite" id="keyboard-navigation-help">
+        Keyboard navigation: Focus the message area and use Ctrl+Home to scroll to top, Ctrl+End to scroll to bottom, Page Up/Down to navigate, Ctrl+Arrow keys for fine scrolling
       </div>
     </div>
   );

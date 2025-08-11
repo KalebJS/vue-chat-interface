@@ -129,6 +129,60 @@
   }
 }
 
+/* Focus styles for accessibility */
+.message-input:focus-visible {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.send-button:focus-visible {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .input-container {
+    border: 2px solid;
+    background: Canvas;
+  }
+
+  .message-input {
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .send-button.enabled {
+    background: ButtonFace;
+    color: ButtonText;
+    border: 2px solid ButtonText;
+  }
+
+  .send-button.disabled {
+    background: GrayText;
+    color: Canvas;
+    border: 2px solid GrayText;
+  }
+
+  .recording-indicator {
+    background: Canvas;
+    border: 2px solid;
+    color: CanvasText;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner,
+  .recording-pulse {
+    animation: none;
+  }
+
+  .send-button.enabled:hover {
+    transform: none;
+  }
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .input-area {

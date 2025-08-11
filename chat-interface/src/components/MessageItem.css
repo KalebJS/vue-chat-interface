@@ -185,6 +185,61 @@
   }
 }
 
+/* Focus styles for accessibility */
+.message-item:focus-within {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .message-content {
+    border: 2px solid;
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .message-user .message-content {
+    background: Highlight;
+    color: HighlightText;
+    border-color: HighlightText;
+  }
+
+  .message-ai .message-content {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+  }
+
+  .status-error .message-content {
+    background: Canvas;
+    border-color: CanvasText;
+    color: CanvasText;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .message-item {
+    animation: none;
+  }
+
+  .typing-dots span {
+    animation: none;
+    opacity: 1;
+  }
+
+  .message-item[data-streaming="true"] .message-content {
+    animation: none;
+    background: #f8f9fa;
+  }
+
+  .message-user[data-streaming="true"] .message-content {
+    background: #007bff;
+  }
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .message-content {

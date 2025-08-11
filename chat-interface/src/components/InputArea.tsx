@@ -57,9 +57,13 @@ export const InputArea: React.FC<InputAreaProps> = ({
   const canSubmit = value.trim().length > 0 && !isLoading;
 
   return (
-    <div className={`input-area ${className}`}>
+    <div className={`input-area ${className}`} role="region" aria-label="Message input area">
       <div className="input-container">
+        <label htmlFor="message-input" className="sr-only">
+          Type your message here
+        </label>
         <textarea
+          id="message-input"
           ref={textareaRef}
           className="message-input"
           value={value}
@@ -69,9 +73,13 @@ export const InputArea: React.FC<InputAreaProps> = ({
           disabled={isLoading}
           rows={1}
           aria-label="Message input"
+          aria-describedby={isRecording ? "recording-status" : undefined}
+          aria-invalid={false}
+          autoComplete="off"
+          spellCheck="true"
         />
         
-        <div className="input-buttons">
+        <div className="input-buttons" role="group" aria-label="Message actions">
           {audioEnabled && (
             <RecordButton
               isRecording={isRecording}
@@ -85,21 +93,28 @@ export const InputArea: React.FC<InputAreaProps> = ({
             className={`send-button ${canSubmit ? 'enabled' : 'disabled'}`}
             onClick={handleSubmit}
             disabled={!canSubmit}
-            aria-label="Send message"
+            aria-label={isLoading ? "Sending message..." : "Send message"}
             title="Send message (Enter)"
+            type="button"
           >
             {isLoading ? (
-              <span className="loading-spinner">⏳</span>
+              <span className="loading-spinner" aria-hidden="true">⏳</span>
             ) : (
-              '➤'
+              <span aria-hidden="true">➤</span>
             )}
           </button>
         </div>
       </div>
       
       {isRecording && (
-        <div className="recording-indicator">
-          <div className="recording-pulse"></div>
+        <div 
+          id="recording-status"
+          className="recording-indicator" 
+          role="status" 
+          aria-live="polite"
+          aria-label="Recording in progress"
+        >
+          <div className="recording-pulse" aria-hidden="true"></div>
           <span>Recording... Click stop when finished</span>
         </div>
       )}

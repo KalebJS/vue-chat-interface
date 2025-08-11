@@ -59,24 +59,45 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     <div 
       className={messageClasses}
       data-streaming={message.isStreaming || false}
+      role="article"
+      aria-labelledby={`message-header-${message.id}`}
+      aria-describedby={`message-content-${message.id}`}
     >
       <div className="message-content">
-        <div className="message-header">
+        <div 
+          id={`message-header-${message.id}`}
+          className="message-header"
+          role="heading"
+          aria-level={3}
+        >
           <span className="message-sender">
-            {message.sender === 'user' ? 'You' : 'AI'}
+            {message.sender === 'user' ? 'You' : 'AI Assistant'}
           </span>
-          <span className="message-time">
+          <span className="message-time" aria-label={`Sent at ${formatTime(message.timestamp)}`}>
             {formatTime(message.timestamp)}
           </span>
-          <span className="message-status" aria-label={`Message ${message.status}`}>
+          <span 
+            className="message-status" 
+            aria-label={`Message status: ${message.status}`}
+            role="status"
+          >
             {getStatusIcon(message.status)}
           </span>
         </div>
-        <div className="message-text">
+        <div 
+          id={`message-content-${message.id}`}
+          className="message-text"
+          role="text"
+        >
           {message.text}
           {message.isStreaming && (
-            <span className="streaming-indicator" aria-label="AI is typing">
-              <span className="typing-dots">
+            <span 
+              className="streaming-indicator" 
+              aria-label="AI is typing"
+              aria-live="polite"
+              role="status"
+            >
+              <span className="typing-dots" aria-hidden="true">
                 <span></span>
                 <span></span>
                 <span></span>
@@ -86,7 +107,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         </div>
         {/* Show audio controls for AI messages or if audioUrl exists */}
         {(message.sender === 'ai' || message.audioUrl) && (
-          <div className="message-audio">
+          <div className="message-audio" role="region" aria-label="Audio controls">
             <AudioControls
               text={message.text}
               audioState={audioState}

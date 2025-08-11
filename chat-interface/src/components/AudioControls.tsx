@@ -88,34 +88,46 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
   ].filter(Boolean).join(' ');
 
   return (
-    <div className={controlsClasses}>
+    <div className={controlsClasses} role="group" aria-label="Audio playback controls">
       <button
         className="audio-control-button play-button"
         onClick={getPlayButtonAction()}
         disabled={!audioState.isSupported}
         aria-label={
           isThisMessagePlaying 
+            ? 'Pause audio playback' 
+            : isThisMessagePaused
+              ? 'Resume audio playback'
+              : 'Play message as audio'
+        }
+        aria-pressed={isThisMessagePlaying}
+        title={
+          isThisMessagePlaying 
             ? 'Pause audio' 
             : isThisMessagePaused
               ? 'Resume audio'
               : 'Play audio'
         }
+        type="button"
       >
-        {getPlayButtonContent()}
+        <span aria-hidden="true">{getPlayButtonContent()}</span>
       </button>
 
       {(isThisMessagePlaying || isThisMessagePaused) && (
         <button
           className="audio-control-button stop-button"
           onClick={handleStop}
-          aria-label="Stop audio"
+          aria-label="Stop audio playback"
+          title="Stop audio"
+          type="button"
         >
-          ⏹️ Stop
+          <span aria-hidden="true">⏹️ Stop</span>
         </button>
       )}
 
       {audioState.error && (
-        <div className="audio-error" role="alert">
+        <div className="audio-error" role="alert" aria-live="assertive">
+          <span className="sr-only">Audio error: </span>
           {audioState.error}
         </div>
       )}
