@@ -127,9 +127,9 @@ describe('Accessibility Tests', () => {
     test('InputArea has proper form semantics', async () => {
       const mockProps = {
         value: '',
-        onChange: jest.fn(),
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        onChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
         audioEnabled: true
@@ -170,10 +170,10 @@ describe('Accessibility Tests', () => {
         autoScroll: true,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       const { container } = render(<MessageList {...mockProps} />);
@@ -195,10 +195,10 @@ describe('Accessibility Tests', () => {
         message: mockMessages[0],
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       const { container } = render(<MessageItem {...mockProps} />);
@@ -228,7 +228,7 @@ describe('Accessibility Tests', () => {
         isRecording: false,
         isLoading: false,
         audioEnabled: true,
-        onToggleRecording: jest.fn()
+        onToggleRecording: vi.fn()
       };
 
       const { container } = render(<RecordButton {...mockProps} />);
@@ -253,10 +253,10 @@ describe('Accessibility Tests', () => {
         text: 'Test message',
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlay: jest.fn(),
-        onPause: jest.fn(),
-        onResume: jest.fn(),
-        onStop: jest.fn(),
+        onPlay: vi.fn(),
+        onPause: vi.fn(),
+        onResume: vi.fn(),
+        onStop: vi.fn(),
         messageId: '1'
       };
 
@@ -278,7 +278,7 @@ describe('Accessibility Tests', () => {
 
     test('SettingsButton has proper button semantics', async () => {
       const mockProps = {
-        onClick: jest.fn(),
+        onClick: vi.fn(),
         disabled: false
       };
 
@@ -305,9 +305,9 @@ describe('Accessibility Tests', () => {
       const user = userEvent.setup();
       const mockProps = {
         value: '',
-        onChange: jest.fn(),
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        onChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
         audioEnabled: true
@@ -344,10 +344,10 @@ describe('Accessibility Tests', () => {
         autoScroll: true,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageList {...mockProps} />);
@@ -395,7 +395,7 @@ describe('Accessibility Tests', () => {
         isRecording: true,
         isLoading: false,
         audioEnabled: true,
-        onToggleRecording: jest.fn()
+        onToggleRecording: vi.fn()
       };
 
       render(<RecordButton {...mockProps} />);
@@ -416,10 +416,10 @@ describe('Accessibility Tests', () => {
         message: streamingMessage,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageItem {...mockProps} />);
@@ -439,10 +439,10 @@ describe('Accessibility Tests', () => {
         text: 'Test message',
         audioState: errorAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlay: jest.fn(),
-        onPause: jest.fn(),
-        onResume: jest.fn(),
-        onStop: jest.fn(),
+        onPlay: vi.fn(),
+        onPause: vi.fn(),
+        onResume: vi.fn(),
+        onStop: vi.fn(),
         messageId: '1'
       };
 
@@ -456,9 +456,9 @@ describe('Accessibility Tests', () => {
     test('Loading states are announced to screen readers', async () => {
       const mockProps = {
         value: '',
-        onChange: jest.fn(),
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        onChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: true,
         isRecording: false,
         audioEnabled: true
@@ -477,15 +477,15 @@ describe('Accessibility Tests', () => {
       // Mock high contrast media query
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
-        value: jest.fn().mockImplementation(query => ({
+        value: vi.fn().mockImplementation(query => ({
           matches: query === '(prefers-contrast: high)',
           media: query,
           onchange: null,
-          addListener: jest.fn(),
-          removeListener: jest.fn(),
-          addEventListener: jest.fn(),
-          removeEventListener: jest.fn(),
-          dispatchEvent: jest.fn(),
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
 
@@ -502,15 +502,15 @@ describe('Accessibility Tests', () => {
       // Mock reduced motion media query
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
-        value: jest.fn().mockImplementation(query => ({
+        value: vi.fn().mockImplementation(query => ({
           matches: query === '(prefers-reduced-motion: reduce)',
           media: query,
           onchange: null,
-          addListener: jest.fn(),
-          removeListener: jest.fn(),
-          addEventListener: jest.fn(),
-          removeEventListener: jest.fn(),
-          dispatchEvent: jest.fn(),
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
 
@@ -591,9 +591,9 @@ describe('Accessibility Tests', () => {
     test('Form controls have proper labels', () => {
       const mockProps = {
         value: '',
-        onChange: jest.fn(),
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        onChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
         audioEnabled: true

@@ -38,7 +38,7 @@ describe('AudioControls', () => {
     it('should render play button when not playing', () => {
       render(<AudioControls {...mockProps} />);
       
-      const playButton = screen.getByRole('button', { name: /play audio/i });
+      const playButton = screen.getByRole('button', { name: /play message as audio/i });
       expect(playButton).toBeInTheDocument();
       expect(playButton).toHaveTextContent('🔊 Play Audio');
     });
@@ -108,7 +108,7 @@ describe('AudioControls', () => {
     it('should call onPlay when play button is clicked', () => {
       render(<AudioControls {...mockProps} />);
       
-      const playButton = screen.getByRole('button', { name: /play audio/i });
+      const playButton = screen.getByRole('button', { name: /play message as audio/i });
       fireEvent.click(playButton);
       
       expect(mockProps.onPlay).toHaveBeenCalledWith('Hello world', mockVoiceSettings);
@@ -183,8 +183,8 @@ describe('AudioControls', () => {
     it('should have proper ARIA labels for play button', () => {
       render(<AudioControls {...mockProps} />);
       
-      const playButton = screen.getByRole('button', { name: /play audio/i });
-      expect(playButton).toHaveAttribute('aria-label', 'Play audio');
+      const playButton = screen.getByRole('button', { name: /play message as audio/i });
+      expect(playButton).toHaveAttribute('aria-label', 'Play message as audio');
     });
 
     it('should have proper ARIA labels for pause button', () => {
@@ -192,7 +192,7 @@ describe('AudioControls', () => {
       render(<AudioControls {...mockProps} audioState={playingState} />);
       
       const pauseButton = screen.getByRole('button', { name: /pause audio/i });
-      expect(pauseButton).toHaveAttribute('aria-label', 'Pause audio');
+      expect(pauseButton).toHaveAttribute('aria-label', 'Pause audio playback');
     });
 
     it('should have proper ARIA labels for resume button', () => {
@@ -200,7 +200,7 @@ describe('AudioControls', () => {
       render(<AudioControls {...mockProps} audioState={pausedState} />);
       
       const resumeButton = screen.getByRole('button', { name: /resume audio/i });
-      expect(resumeButton).toHaveAttribute('aria-label', 'Resume audio');
+      expect(resumeButton).toHaveAttribute('aria-label', 'Resume audio playback');
     });
 
     it('should have proper ARIA labels for stop button', () => {
@@ -208,7 +208,7 @@ describe('AudioControls', () => {
       render(<AudioControls {...mockProps} audioState={playingState} />);
       
       const stopButton = screen.getByRole('button', { name: /stop audio/i });
-      expect(stopButton).toHaveAttribute('aria-label', 'Stop audio');
+      expect(stopButton).toHaveAttribute('aria-label', 'Stop audio playback');
     });
 
     it('should have role="alert" for error messages', () => {

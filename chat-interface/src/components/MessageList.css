@@ -6,6 +6,19 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  /* Performance optimizations */
+  contain: layout style paint;
+  will-change: scroll-position;
+}
+
+/* Virtualized message list optimizations */
+.message-list.virtualized {
+  /* Enable hardware acceleration */
+  transform: translateZ(0);
+  /* Optimize for scrolling */
+  -webkit-overflow-scrolling: touch;
+  /* Reduce repaints during scrolling */
+  backface-visibility: hidden;
 }
 
 .messages-container {
@@ -14,6 +27,11 @@
   padding: 1rem;
   scroll-behavior: smooth;
   outline: none; /* Remove focus outline since we handle keyboard navigation */
+  /* Performance optimizations for scrolling */
+  transform: translateZ(0);
+  -webkit-overflow-scrolling: touch;
+  /* Optimize repaints */
+  contain: layout style paint;
 }
 
 /* Custom scrollbar */
@@ -256,4 +274,87 @@
   .scroll-icon {
     font-size: 1.2rem;
   }
+}
+/* Perform
+ance debugging (development only) */
+.virtualization-debug {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: monospace;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* Settings loading states */
+.settings-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+  animation: spin 1s linear infinite;
+}
+
+.settings-panel-loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.settings-panel-loading .loading-spinner {
+  font-size: 2rem;
+  animation: spin 1s linear infinite;
+}
+
+/* Performance optimizations for message items in virtualized list */
+.message-list.virtualized .message-item {
+  /* Optimize for frequent repaints */
+  contain: layout style paint;
+  /* Enable hardware acceleration */
+  transform: translateZ(0);
+  /* Optimize text rendering */
+  text-rendering: optimizeSpeed;
+}
+
+/* Reduce layout thrashing during virtualization */
+.message-list.virtualized .message-content {
+  /* Prevent layout shifts */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  /* Optimize for performance */
+  contain: layout style;
+}
+
+/* Optimize audio controls in virtualized lists */
+.message-list.virtualized .audio-controls {
+  /* Reduce repaints */
+  contain: layout style paint;
+  /* Enable hardware acceleration for smooth animations */
+  transform: translateZ(0);
+}
+
+/* Memory usage optimization */
+.message-list.virtualized img,
+.message-list.virtualized video {
+  /* Lazy load images and videos */
+  loading: lazy;
+  /* Optimize memory usage */
+  contain: layout style paint;
 }

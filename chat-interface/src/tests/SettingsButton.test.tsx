@@ -39,8 +39,8 @@ describe('SettingsButton', () => {
       render(<SettingsButton {...defaultProps} />);
       
       const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('aria-label', 'Open settings');
-      expect(button).toHaveAttribute('title', 'Settings');
+      expect(button).toHaveAttribute('aria-label', 'Open settings panel');
+      expect(button).toHaveAttribute('title', 'Open settings');
     });
   });
 

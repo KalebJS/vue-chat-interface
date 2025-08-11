@@ -13,8 +13,8 @@ import {
 } from '../types';
 
 // Mock NetworkErrorHandler
-jest.mock('../services/NetworkErrorHandler');
-const mockNetworkErrorHandler = NetworkErrorHandler as jest.Mocked<typeof NetworkErrorHandler>;
+vi.mock('../services/NetworkErrorHandler');
+const mockNetworkErrorHandler = NetworkErrorHandler as MockedFunction<typeof NetworkErrorHandler>;
 
 // Mock LangChain modules
 vi.mock('@langchain/openai', () => ({
@@ -162,7 +162,7 @@ describe('LangChainService', () => {
         expect.fail('Should have thrown an error');
       } catch (error) {
         expect(error).toBeInstanceOf(LangChainError);
-        expect((error as LangChainError).code).toBe(LangChainErrorCode.INITIALIZATION_FAILED);
+        expect((error as LangChainError).code).toBe(LangChainErrorCode.CONFIGURATION_ERROR);
         expect((error as LangChainError).originalError?.message).toContain('Unsupported model provider');
       }
     });
@@ -181,7 +181,7 @@ describe('LangChainService', () => {
         expect.fail('Should have thrown an error');
       } catch (error) {
         expect(error).toBeInstanceOf(LangChainError);
-        expect((error as LangChainError).code).toBe(LangChainErrorCode.INITIALIZATION_FAILED);
+        expect((error as LangChainError).code).toBe(LangChainErrorCode.MODEL_NOT_AVAILABLE);
         expect((error as LangChainError).originalError?.message).toContain('Local model provider not yet implemented');
       }
     });
@@ -200,7 +200,7 @@ describe('LangChainService', () => {
         expect.fail('Should have thrown an error');
       } catch (error) {
         expect(error).toBeInstanceOf(LangChainError);
-        expect((error as LangChainError).code).toBe(LangChainErrorCode.INITIALIZATION_FAILED);
+        expect((error as LangChainError).code).toBe(LangChainErrorCode.CONFIGURATION_ERROR);
         expect((error as LangChainError).originalError?.message).toContain('Vector memory type not yet implemented');
       }
     });
@@ -359,7 +359,7 @@ describe('LangChainService', () => {
         await service.initialize(invalidConfig);
       } catch (error) {
         expect(error).toBeInstanceOf(LangChainError);
-        expect((error as LangChainError).code).toBe(LangChainErrorCode.INITIALIZATION_FAILED);
+        expect((error as LangChainError).code).toBe(LangChainErrorCode.CONFIGURATION_ERROR);
       }
     });
 
@@ -377,7 +377,7 @@ describe('LangChainService', () => {
         expect.fail('Should have thrown an error');
       } catch (error) {
         expect(error).toBeInstanceOf(LangChainError);
-        expect((error as LangChainError).code).toBe(LangChainErrorCode.INITIALIZATION_FAILED);
+        expect((error as LangChainError).code).toBe(LangChainErrorCode.MODEL_NOT_AVAILABLE);
         expect((error as LangChainError).originalError).toBeInstanceOf(LangChainError);
         expect((error as LangChainError).originalError?.originalError).toBe(mockError);
       }
@@ -515,6 +515,27 @@ describe('LangChainService', () => {
     });
 
     it('should handle streaming messages with token callbacks', async () => {
+      // Mock model with streaming support
+      const mockModel = {
+        stream: vi.fn().mockImplementation(async function* () {
+          yield { response: 'Mocked' };
+          yield { response: ' chain' };
+          yield { response: ' response' };
+        })
+      };
+      (service as any).model = mockModel;
+
+      // Mock chain with streaming support
+      const mockChain = {
+        call: vi.fn().mockResolvedValue({ response: 'Mocked chain response' }),
+        stream: vi.fn().mockImplementation(async function* () {
+          yield { response: 'Mocked' };
+          yield { response: ' chain' };
+          yield { response: ' response' };
+        })
+      };
+      (service as any).chain = mockChain;
+
       const tokens: string[] = [];
       let completedResponse = '';
       let errorOccurred = false;

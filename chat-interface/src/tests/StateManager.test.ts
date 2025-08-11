@@ -31,6 +31,7 @@ describe('StateManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorageMock.getItem.mockReturnValue(null);
+    localStorageMock.setItem.mockImplementation(() => {}); // Default to not throwing
     
     mockLangChainService = new LangChainService();
     vi.mocked(mockLangChainService.isInitialized).mockReturnValue(false);
@@ -524,6 +525,9 @@ describe('StateManager', () => {
     });
 
     it('should start message streaming', () => {
+      // Ensure localStorage mock doesn't throw errors for this test
+      localStorageMock.setItem.mockImplementation(() => {});
+      
       stateManager.addMessage({
         text: '',
         sender: 'ai',
@@ -531,6 +535,7 @@ describe('StateManager', () => {
       });
       
       const messageId = stateManager.getState().messages[0].id;
+      
       stateManager.startMessageStreaming(messageId);
       
       const state = stateManager.getState();
@@ -642,7 +647,7 @@ describe('StateManager', () => {
       expect(state.messages[0].sender).toBe('user');
       expect(state.messages[1].text).toBe('Regular response');
       expect(state.messages[1].sender).toBe('ai');
-      expect(state.messages[1].isStreaming).toBeUndefined();
+      expect(state.messages[1].isStreaming).toBe(false);
       
       expect(mockLangChainService.sendMessage).toHaveBeenCalledWith('Hello AI');
       expect(mockLangChainService.sendMessageStreaming).not.toHaveBeenCalled();
@@ -653,20 +658,44 @@ describe('StateManager', () => {
       
       vi.mocked(mockLangChainService.sendMessageStreaming).mockImplementation(
         async (message, options) => {
-          if (options.signal?.aborted) {
-            const error = new Error('Request aborted');
-            options.onError?.(error);
-            throw error;
-          }
-          return 'Response';
+          // Simulate abort during streaming
+          return new Promise((resolve, reject) => {
+            const checkAbort = () => {
+              if (options.signal?.aborted) {
+                const error = new Error('Request aborted');
+                options.onError?.(error);
+                reject(error);
+                return true;
+              }
+              return false;
+            };
+            
+            if (checkAbort()) return;
+            
+            // Check abort signal periodically
+            const interval = setInterval(() => {
+              if (checkAbort()) {
+                clearInterval(interval);
+              }
+            }, 5);
+            
+            // Simulate normal completion after some time
+            setTimeout(() => {
+              clearInterval(interval);
+              if (!options.signal?.aborted) {
+                resolve('Response');
+              }
+            }, 50);
+          });
         }
       );
       
-      abortController.abort();
+      const promise = stateManager.sendMessageWithStreaming('Hello', true, abortController.signal);
       
-      await expect(
-        stateManager.sendMessageWithStreaming('Hello', true, abortController.signal)
-      ).rejects.toThrow();
+      // Abort after a short delay to simulate abort during streaming
+      setTimeout(() => abortController.abort(), 10);
+      
+      await expect(promise).rejects.toThrow('Request aborted');
       
       const state = stateManager.getState();
       expect(state.messages[1].status).toBe(MessageStatus.ERROR);

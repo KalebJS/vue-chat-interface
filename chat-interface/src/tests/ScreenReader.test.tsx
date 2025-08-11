@@ -11,9 +11,9 @@ import type { Message, AudioState, VoiceSettings } from '../types';
 import { MessageStatus } from '../types';
 
 // Mock dependencies
-jest.mock('../hooks/useStateManager');
-jest.mock('../services/AudioController');
-jest.mock('../services/LangChainService');
+vi.mock('../hooks/useStateManager');
+vi.mock('../services/AudioController');
+vi.mock('../services/LangChainService');
 
 const mockMessages: Message[] = [
   {
@@ -63,10 +63,10 @@ describe('Screen Reader Compatibility Tests', () => {
         autoScroll: true,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageList {...mockProps} />);
@@ -80,9 +80,9 @@ describe('Screen Reader Compatibility Tests', () => {
     test('Recording status is announced via live region', () => {
       const mockProps = {
         value: '',
-        onChange: jest.fn(),
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        onChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: true,
         audioEnabled: true
@@ -106,10 +106,10 @@ describe('Screen Reader Compatibility Tests', () => {
         text: 'Test message',
         audioState: errorAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlay: jest.fn(),
-        onPause: jest.fn(),
-        onResume: jest.fn(),
-        onStop: jest.fn(),
+        onPlay: vi.fn(),
+        onPause: vi.fn(),
+        onResume: vi.fn(),
+        onStop: vi.fn(),
         messageId: '1'
       };
 
@@ -128,18 +128,18 @@ describe('Screen Reader Compatibility Tests', () => {
         message: streamingMessage,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageItem {...mockProps} />);
       
       // Check for streaming status
-      const streamingStatus = screen.getByRole('status');
+      const streamingStatus = screen.getByLabelText('AI is typing');
       expect(streamingStatus).toHaveAttribute('aria-live', 'polite');
-      expect(streamingStatus).toHaveAttribute('aria-label', 'AI is typing');
+      expect(streamingStatus).toHaveAttribute('role', 'status');
     });
   });
 
@@ -149,10 +149,10 @@ describe('Screen Reader Compatibility Tests', () => {
         message: mockMessages[0],
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageItem {...mockProps} />);
@@ -178,10 +178,10 @@ describe('Screen Reader Compatibility Tests', () => {
         text: 'This is a test message for audio playback',
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlay: jest.fn(),
-        onPause: jest.fn(),
-        onResume: jest.fn(),
-        onStop: jest.fn(),
+        onPlay: vi.fn(),
+        onPause: vi.fn(),
+        onResume: vi.fn(),
+        onStop: vi.fn(),
         messageId: '1'
       };
 
@@ -202,7 +202,7 @@ describe('Screen Reader Compatibility Tests', () => {
         isRecording: false,
         isLoading: false,
         audioEnabled: true,
-        onToggleRecording: jest.fn()
+        onToggleRecording: vi.fn()
       };
 
       render(<RecordButton {...mockProps} />);
@@ -221,9 +221,9 @@ describe('Screen Reader Compatibility Tests', () => {
     test('Input area has proper form labels', () => {
       const mockProps = {
         value: '',
-        onChange: jest.fn(),
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        onChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
         audioEnabled: true
@@ -244,8 +244,8 @@ describe('Screen Reader Compatibility Tests', () => {
       expect(screen.getByLabelText('Type your message here')).toBe(textbox);
       
       // Check button group
-      const buttonGroup = screen.getByRole('group');
-      expect(buttonGroup).toHaveAttribute('aria-label', 'Message actions');
+      const buttonGroup = screen.getByLabelText('Message actions');
+      expect(buttonGroup).toHaveAttribute('role', 'group');
     });
   });
 
@@ -253,9 +253,9 @@ describe('Screen Reader Compatibility Tests', () => {
     test('Loading states are properly announced', () => {
       const mockProps = {
         value: 'Test message',
-        onChange: jest.fn(),
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        onChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: true,
         isRecording: false,
         audioEnabled: true
@@ -274,7 +274,7 @@ describe('Screen Reader Compatibility Tests', () => {
         isRecording: true,
         isLoading: false,
         audioEnabled: true,
-        onToggleRecording: jest.fn()
+        onToggleRecording: vi.fn()
       };
 
       render(<RecordButton {...mockProps} />);
@@ -295,10 +295,10 @@ describe('Screen Reader Compatibility Tests', () => {
         text: 'Test message',
         audioState: playingAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlay: jest.fn(),
-        onPause: jest.fn(),
-        onResume: jest.fn(),
-        onStop: jest.fn(),
+        onPlay: vi.fn(),
+        onPause: vi.fn(),
+        onResume: vi.fn(),
+        onStop: vi.fn(),
         messageId: '1'
       };
 
@@ -323,10 +323,10 @@ describe('Screen Reader Compatibility Tests', () => {
         message: errorMessage,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageItem {...mockProps} />);
@@ -345,10 +345,10 @@ describe('Screen Reader Compatibility Tests', () => {
         autoScroll: true,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageList {...mockProps} />);
@@ -366,7 +366,7 @@ describe('Screen Reader Compatibility Tests', () => {
 
     test('Button states change announcements', async () => {
       const user = userEvent.setup();
-      const mockOnToggle = jest.fn();
+      const mockOnToggle = vi.fn();
       
       const mockProps = {
         isRecording: false,
@@ -425,10 +425,10 @@ describe('Screen Reader Compatibility Tests', () => {
         message: mockMessages[0],
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageItem {...mockProps} />);
@@ -465,10 +465,10 @@ describe('Screen Reader Compatibility Tests', () => {
         autoScroll: true,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageList {...mockProps} />);
@@ -489,10 +489,10 @@ describe('Screen Reader Compatibility Tests', () => {
         autoScroll: true,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       const { rerender } = render(<MessageList {...mockProps} />);
@@ -516,10 +516,10 @@ describe('Screen Reader Compatibility Tests', () => {
         autoScroll: true,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageList {...mockProps} />);

@@ -2,20 +2,67 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { AppState, Message, AudioState, LangChainState, AppSettings } from '../types';
 import { MessageStatus } from '../types';
 import { StateManager } from '../services/StateManager';
-import { LangChainService } from '../services/LangChainService';
+import { LazyLangChainService } from '../services/LazyLangChainService';
+import { performanceMonitor } from '../utils/performance';
 
 /**
  * React hook for managing application state with StateManager integration
  */
 export function useStateManager() {
   const stateManagerRef = useRef<StateManager | null>(null);
-  const langChainServiceRef = useRef<LangChainService | null>(null);
-  const [state, setState] = useState<AppState | null>(null);
+  const langChainServiceRef = useRef<LazyLangChainService | null>(null);
+
+  // Provide a default state while initializing
+  const defaultState: AppState = {
+    messages: [],
+    currentInput: '',
+    isLoading: false,
+    error: undefined,
+    audioState: {
+      isRecording: false,
+      isPlaying: false,
+      isSupported: false,
+      hasPermission: false,
+      error: undefined
+    },
+    langChainState: {
+      isInitialized: false,
+      currentModel: '',
+      conversationId: '',
+      tokenCount: 0,
+      memorySize: 0,
+      isStreaming: false
+    },
+    settings: {
+      theme: 'light',
+      fontSize: 'medium',
+      autoSave: true,
+      soundEnabled: true,
+      voiceSettings: {
+        selectedVoice: '',
+        rate: 1,
+        pitch: 1,
+        volume: 1
+      },
+      aiModel: {
+        provider: 'openai' as any,
+        modelName: 'gpt-3.5-turbo',
+        temperature: 0.7,
+        maxTokens: 2048,
+        memoryType: 'buffer' as any,
+        chainType: 'conversation' as any
+      }
+    }
+  };
+
+  const [state, setState] = useState<AppState>(defaultState);
 
   // Initialize services on first render
   useEffect(() => {
+    performanceMonitor.start('useStateManager-init');
+    
     if (!langChainServiceRef.current) {
-      langChainServiceRef.current = new LangChainService();
+      langChainServiceRef.current = new LazyLangChainService();
     }
     
     if (!stateManagerRef.current) {
@@ -28,11 +75,16 @@ export function useStateManager() {
       setState(newState);
     });
 
+    performanceMonitor.end('useStateManager-init');
+
     // Cleanup on unmount
     return () => {
       unsubscribe();
       if (stateManagerRef.current) {
         stateManagerRef.current.dispose();
+      }
+      if (langChainServiceRef.current) {
+        langChainServiceRef.current.dispose();
       }
     };
   }, []);
@@ -109,7 +161,7 @@ export function useStateManager() {
       updateError(undefined);
       
       const config = stateManagerRef.current.getState().settings.aiModel;
-      await langChainServiceRef.current.initialize(config);
+      await langChainServiceRef.current.init(config);
       
       // Update LangChain state
       const langChainState = langChainServiceRef.current.getState();
@@ -144,7 +196,7 @@ export function useStateManager() {
       throw new Error('Services not initialized');
     }
 
-    if (!langChainServiceRef.current.isInitialized()) {
+    if (!langChainServiceRef.current.isReady()) {
       throw new Error('LangChain service not initialized');
     }
 
@@ -251,7 +303,7 @@ export function useStateManager() {
     return {
       stateManager: stateManagerRef.current?.getDebugInfo(),
       langChain: {
-        isInitialized: langChainServiceRef.current?.isInitialized(),
+        isInitialized: langChainServiceRef.current?.isReady(),
         config: langChainServiceRef.current?.getConfig(),
         state: langChainServiceRef.current?.getState()
       }

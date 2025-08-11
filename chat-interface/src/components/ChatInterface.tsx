@@ -1,16 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { useStateManager } from '../hooks/useStateManager';
-import { MessageList } from './MessageList';
+import { VirtualizedMessageList } from './VirtualizedMessageList';
 import { InputArea } from './InputArea';
-import { SettingsPanel } from './SettingsPanel';
-import { SettingsButton } from './SettingsButton';
-import { AudioController } from '../services/AudioController';
+import { LazyAudioController } from '../services/LazyAudioController';
 import { ErrorBoundary, AudioErrorBoundary, LangChainErrorBoundary } from './ErrorBoundary';
 import { AudioFallback, LangChainFallback, NetworkStatus, LoadingFallback } from './FallbackUI';
 import { NetworkErrorHandler } from '../services/NetworkErrorHandler';
+import { performanceMonitor, useMeasureRender } from '../utils/performance';
 import './ChatInterface.css';
 import './ErrorBoundary.css';
 import './FallbackUI.css';
+
+// Lazy load heavy components
+const SettingsPanel = lazy(() => import('./SettingsPanel').then(module => ({ default: module.SettingsPanel })));
+const SettingsButton = lazy(() => import('./SettingsButton').then(module => ({ default: module.SettingsButton })));
 
 interface ChatInterfaceProps {
   className?: string;
@@ -21,6 +24,9 @@ interface ChatInterfaceProps {
  * Handles user interactions and manages UI state
  */
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) => {
+  // Measure render performance
+  useMeasureRender('ChatInterface');
+
   const {
     state,
     sendMessage,
@@ -33,7 +39,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
     updateModelConfig
   } = useStateManager();
   
-  const audioControllerRef = useRef<AudioController | null>(null);
+  const audioControllerRef = useRef<LazyAudioController | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [audioDisabled, setAudioDisabled] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -67,11 +73,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
     initialize();
   }, [state?.langChainState.isInitialized, initializeLangChain]);
 
-  // Initialize AudioController
+  // Initialize LazyAudioController
   useEffect(() => {
     if (!audioControllerRef.current && !audioDisabled) {
       try {
-        audioControllerRef.current = new AudioController();
+        audioControllerRef.current = new LazyAudioController();
         
         // Set up audio state callback
         audioControllerRef.current.setStateChangeCallback((audioState) => {
@@ -83,12 +89,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
           updateCurrentInput(text);
         });
         
-        // Initialize audio state
-        updateAudioState(audioControllerRef.current.getState());
+        // Initialize audio state (basic state without full initialization)
+        updateAudioState(audioControllerRef.current.getBasicState());
       } catch (error) {
         console.error('Failed to initialize AudioController:', error);
         setAudioDisabled(true);
-        updateError('Audio features are not available');
+        if (updateError) {
+          updateError('Audio features are not available');
+        }
       }
     }
 
@@ -334,10 +342,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
             <h1 id="chat-title">AI Chat Interface</h1>
           </div>
           <div className="chat-controls" role="toolbar" aria-label="Chat controls">
-            <SettingsButton 
-              onClick={handleOpenSettings}
-              disabled={!state}
-            />
+            <Suspense fallback={<div className="settings-loading">⚙️</div>}>
+              <SettingsButton 
+                onClick={handleOpenSettings}
+                disabled={!state}
+              />
+            </Suspense>
           </div>
           {state.error && (
             <div 
@@ -393,7 +403,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
             </div>
           }
         >
-          <MessageList 
+          <VirtualizedMessageList 
             messages={state.messages}
             isLoading={state.isLoading}
             autoScroll={state.settings.autoScroll}
@@ -404,6 +414,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
             onResumeAudio={handleResumeAudio}
             onStopAudio={handleStopAudio}
             onScrollToTop={handleScrollToTop}
+            threshold={50} // Start virtualizing after 50 messages
+            itemHeight={100} // Estimated height per message
+            overscan={3} // Render 3 extra items above/below
           />
         </ErrorBoundary>
 
@@ -427,14 +440,21 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ className = '' }) 
         </ErrorBoundary>
 
         {/* Settings Panel */}
-        {state && (
-          <SettingsPanel
-            settings={state.settings}
-            onSettingsChange={handleSettingsChange}
-            onClose={handleCloseSettings}
-            isOpen={isSettingsOpen}
-            availableVoices={availableVoices}
-          />
+        {state && isSettingsOpen && (
+          <Suspense fallback={
+            <div className="settings-panel-loading">
+              <div className="loading-spinner">⚙️</div>
+              <span>Loading settings...</span>
+            </div>
+          }>
+            <SettingsPanel
+              settings={state.settings}
+              onSettingsChange={handleSettingsChange}
+              onClose={handleCloseSettings}
+              isOpen={isSettingsOpen}
+              availableVoices={availableVoices}
+            />
+          </Suspense>
         )}
       </div>
     </ErrorBoundary>

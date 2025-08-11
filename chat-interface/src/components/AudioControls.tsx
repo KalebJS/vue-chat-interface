@@ -30,8 +30,8 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
 }) => {
   // For this implementation, we'll assume that when audio is playing, it's for the current message
   // In a real implementation, you'd want to track which specific message is playing globally
-  const isThisMessagePlaying = audioState.isPlaying;
-  const isThisMessagePaused = audioState.isPaused;
+  const isThisMessagePlaying = audioState?.isPlaying || false;
+  const isThisMessagePaused = audioState?.isPaused || false;
 
   const handlePlay = () => {
     onPlay(text, voiceSettings);
@@ -50,7 +50,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
   };
 
   const getPlayButtonContent = () => {
-    if (!audioState.isSupported) {
+    if (!audioState?.isSupported) {
       return '🔇 Not supported';
     }
 
@@ -66,7 +66,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
   };
 
   const getPlayButtonAction = () => {
-    if (!audioState.isSupported) {
+    if (!audioState?.isSupported) {
       return undefined;
     }
 
@@ -84,7 +84,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
   const controlsClasses = [
     'audio-controls',
     className,
-    audioState.isSupported ? 'supported' : 'unsupported'
+    audioState?.isSupported ? 'supported' : 'unsupported'
   ].filter(Boolean).join(' ');
 
   return (
@@ -92,7 +92,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
       <button
         className="audio-control-button play-button"
         onClick={getPlayButtonAction()}
-        disabled={!audioState.isSupported}
+        disabled={!audioState?.isSupported}
         aria-label={
           isThisMessagePlaying 
             ? 'Pause audio playback' 
@@ -125,7 +125,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
         </button>
       )}
 
-      {audioState.error && (
+      {audioState?.error && (
         <div className="audio-error" role="alert" aria-live="assertive">
           <span className="sr-only">Audio error: </span>
           {audioState.error}

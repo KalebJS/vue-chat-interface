@@ -84,7 +84,7 @@ describe('InputArea', () => {
   it('disables send button when loading', () => {
     render(<InputArea {...defaultProps} value="Test" isLoading={true} />);
 
-    const sendButton = screen.getByLabelText('Send message');
+    const sendButton = screen.getByLabelText('Sending message...');
     expect(sendButton).toBeDisabled();
   });
 
@@ -104,9 +104,9 @@ describe('InputArea', () => {
   it('renders record button when audio is enabled', () => {
     render(<InputArea {...defaultProps} audioEnabled={true} />);
 
-    expect(screen.getByLabelText('Start recording')).toBeInTheDocument();
+    expect(screen.getByLabelText('Start voice recording')).toBeInTheDocument();
     // Check for microphone icon elements instead of emoji
-    const recordButton = screen.getByLabelText('Start recording');
+    const recordButton = screen.getByLabelText('Start voice recording');
     expect(recordButton.querySelector('.mic-icon')).toBeInTheDocument();
   });
 
@@ -121,7 +121,7 @@ describe('InputArea', () => {
   it('calls onToggleRecording when record button is clicked', () => {
     render(<InputArea {...defaultProps} audioEnabled={true} />);
 
-    const recordButton = screen.getByLabelText('Start recording');
+    const recordButton = screen.getByLabelText('Start voice recording');
     fireEvent.click(recordButton);
 
     expect(mockOnToggleRecording).toHaveBeenCalled();
@@ -130,9 +130,9 @@ describe('InputArea', () => {
   it('shows recording state when recording', () => {
     render(<InputArea {...defaultProps} isRecording={true} />);
 
-    expect(screen.getByLabelText('Stop recording')).toBeInTheDocument();
+    expect(screen.getByLabelText('Stop voice recording')).toBeInTheDocument();
     // Check for stop icon elements instead of emoji
-    const recordButton = screen.getByLabelText('Stop recording');
+    const recordButton = screen.getByLabelText('Stop voice recording');
     expect(recordButton.querySelector('.stop-icon')).toBeInTheDocument();
     expect(screen.getByText('Recording... Click stop when finished')).toBeInTheDocument();
   });
@@ -140,14 +140,14 @@ describe('InputArea', () => {
   it('applies recording class to record button when recording', () => {
     render(<InputArea {...defaultProps} isRecording={true} />);
 
-    const recordButton = screen.getByLabelText('Stop recording');
+    const recordButton = screen.getByLabelText('Stop voice recording');
     expect(recordButton).toHaveClass('recording');
   });
 
   it('disables record button when loading', () => {
     render(<InputArea {...defaultProps} isLoading={true} audioEnabled={true} />);
 
-    const recordButton = screen.getByLabelText('Start recording');
+    const recordButton = screen.getByLabelText('Start voice recording');
     expect(recordButton).toBeDisabled();
   });
 
@@ -172,7 +172,7 @@ describe('InputArea', () => {
     expect(sendButton).not.toBeDisabled();
 
     rerender(<InputArea {...defaultProps} value="Test" isLoading={true} />);
-    sendButton = screen.getByLabelText('Send message');
+    sendButton = screen.getByLabelText('Sending message...');
     expect(sendButton).toBeDisabled();
   });
 

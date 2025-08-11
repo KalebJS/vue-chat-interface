@@ -239,9 +239,12 @@ export class StateManager {
       isStreaming: true, 
       streamingComplete: false 
     });
-    this.updateLangChainState({ 
-      isStreaming: true, 
-      streamingMessageId: messageId 
+    this.setState({ 
+      langChainState: { 
+        ...this.state.langChainState,
+        isStreaming: true, 
+        streamingMessageId: messageId 
+      }
     });
   }
 
@@ -272,9 +275,12 @@ export class StateManager {
     }
     
     this.updateMessage(messageId, updates);
-    this.updateLangChainState({ 
-      isStreaming: false, 
-      streamingMessageId: undefined 
+    this.setState({ 
+      langChainState: { 
+        ...this.state.langChainState,
+        isStreaming: false, 
+        streamingMessageId: undefined 
+      }
     });
   }
 
@@ -287,9 +293,12 @@ export class StateManager {
       streamingComplete: false,
       status: MessageStatus.ERROR 
     });
-    this.updateLangChainState({ 
-      isStreaming: false, 
-      streamingMessageId: undefined 
+    this.setState({ 
+      langChainState: { 
+        ...this.state.langChainState,
+        isStreaming: false, 
+        streamingMessageId: undefined 
+      }
     });
     this.updateError(error);
   }
@@ -361,12 +370,15 @@ export class StateManager {
         const response = await this.langChainService.sendMessage(messageText);
         this.updateMessage(aiMessageId, {
           text: response,
-          status: MessageStatus.SENT
+          status: MessageStatus.SENT,
+          isStreaming: false
         });
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
       this.handleStreamingError(aiMessageId, errorMessage);
+      // Re-throw the error so the caller can handle it
+      throw error;
     } finally {
       this.setState({ isLoading: false });
     }
@@ -408,11 +420,19 @@ export class StateManager {
    * Synchronize state with LangChain service
    */
   private syncWithLangChain(previousState: AppState): void {
-    // Update LangChain state from service
+    // Update LangChain state from service, but preserve streaming state
     if (this.langChainService.isInitialized()) {
       const langChainState = this.langChainService.getState();
       if (JSON.stringify(langChainState) !== JSON.stringify(this.state.langChainState)) {
-        this.state.langChainState = langChainState;
+        // Preserve streaming state when syncing
+        const currentStreamingState = {
+          isStreaming: this.state.langChainState.isStreaming,
+          streamingMessageId: this.state.langChainState.streamingMessageId
+        };
+        this.state.langChainState = {
+          ...langChainState,
+          ...currentStreamingState
+        };
       }
     }
 

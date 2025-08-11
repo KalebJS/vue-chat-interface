@@ -67,6 +67,14 @@ export class NetworkErrorHandler {
       } catch (error) {
         lastError = error as Error;
         
+        // Check if request was aborted
+        if (options.signal?.aborted) {
+          throw new NetworkError(
+            'Request was aborted',
+            NetworkErrorCode.CONNECTION_FAILED
+          );
+        }
+        
         // Don't retry if this is the last attempt or if retry condition fails
         if (attempt >= retryConfig.maxRetries || 
             !retryConfig.retryCondition!(lastError)) {
@@ -85,7 +93,12 @@ export class NetworkErrorHandler {
         console.warn(`Request failed (attempt ${attempt + 1}/${retryConfig.maxRetries + 1}), retrying in ${Math.round(jitteredDelay)}ms:`, lastError.message);
 
         // Wait before retrying
-        await this.delay(jitteredDelay, options.signal);
+        try {
+          await this.delay(jitteredDelay, options.signal);
+        } catch (delayError) {
+          // If delay was aborted, throw the abort error
+          throw delayError;
+        }
         attempt++;
       }
     }

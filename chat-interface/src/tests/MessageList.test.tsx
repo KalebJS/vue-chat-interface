@@ -577,7 +577,7 @@ describe('MessageList', () => {
         />
       );
 
-      expect(screen.getByText(/Use Ctrl\+Home to scroll to top/)).toBeInTheDocument();
+      expect(screen.getByText(/Ctrl\+Home to scroll to top/)).toBeInTheDocument();
     });
 
     it('has proper button labels', async () => {

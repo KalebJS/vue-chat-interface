@@ -82,7 +82,7 @@ describe('MessageItem', () => {
     );
 
     expect(screen.getByText('I am doing well, thank you for asking!')).toBeInTheDocument();
-    expect(screen.getByText('AI')).toBeInTheDocument();
+    expect(screen.getByText('AI Assistant')).toBeInTheDocument();
     expect(screen.getByText(/\d{1,2}:\d{2}\s?(AM|PM)/)).toBeInTheDocument();
     expect(screen.getByText('✓')).toBeInTheDocument();
   });
@@ -211,7 +211,7 @@ describe('MessageItem', () => {
       />
     );
 
-    const audioButton = screen.getByLabelText('Play audio');
+    const audioButton = screen.getByLabelText('Play message as audio');
     expect(audioButton).toBeInTheDocument();
     expect(screen.getByText('🔊 Play Audio')).toBeInTheDocument();
   });
@@ -226,7 +226,7 @@ describe('MessageItem', () => {
       />
     );
 
-    const audioButton = screen.getByLabelText('Play audio');
+    const audioButton = screen.getByLabelText('Play message as audio');
     expect(audioButton).toBeInTheDocument();
     expect(screen.getByText('🔊 Play Audio')).toBeInTheDocument();
   });
@@ -241,7 +241,7 @@ describe('MessageItem', () => {
       />
     );
 
-    expect(screen.queryByLabelText('Play audio')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Play message as audio')).not.toBeInTheDocument();
     expect(screen.queryByText('🔊 Play Audio')).not.toBeInTheDocument();
   });
 
@@ -255,7 +255,7 @@ describe('MessageItem', () => {
       />
     );
 
-    const audioButton = screen.getByLabelText('Play audio');
+    const audioButton = screen.getByLabelText('Play message as audio');
     fireEvent.click(audioButton);
 
     expect(mockAudioHandlers.onPlayAudio).toHaveBeenCalledWith(

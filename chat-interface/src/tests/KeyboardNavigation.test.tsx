@@ -11,9 +11,9 @@ import type { Message, AudioState, VoiceSettings } from '../types';
 import { MessageStatus } from '../types';
 
 // Mock dependencies
-jest.mock('../hooks/useStateManager');
-jest.mock('../services/AudioController');
-jest.mock('../services/LangChainService');
+vi.mock('../hooks/useStateManager');
+vi.mock('../services/AudioController');
+vi.mock('../services/LangChainService');
 
 const mockMessages: Message[] = [
   {
@@ -71,10 +71,10 @@ describe('Keyboard Navigation Tests', () => {
     test('Tab order is logical and follows visual layout', async () => {
       const user = userEvent.setup();
       const mockProps = {
-        value: '',
-        onChange: jest.fn(),
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        value: 'test message', // Provide text to enable send button
+        onChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
         audioEnabled: true
@@ -96,10 +96,10 @@ describe('Keyboard Navigation Tests', () => {
     test('Shift+Tab navigates backwards correctly', async () => {
       const user = userEvent.setup();
       const mockProps = {
-        value: '',
-        onChange: jest.fn(),
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        value: 'test message', // Provide text to enable send button
+        onChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
         audioEnabled: true
@@ -124,13 +124,13 @@ describe('Keyboard Navigation Tests', () => {
     test('Disabled elements are skipped during tab navigation', async () => {
       const user = userEvent.setup();
       const mockProps = {
-        value: '',
-        onChange: jest.fn(),
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        value: 'test message', // Provide text to enable send button
+        onChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
-        audioEnabled: false // Audio disabled
+        audioEnabled: false // Audio disabled - record button should be disabled
       };
 
       render(<InputArea {...mockProps} />);
@@ -147,7 +147,7 @@ describe('Keyboard Navigation Tests', () => {
   describe('Enter and Space Key Activation', () => {
     test('Enter key activates buttons', async () => {
       const user = userEvent.setup();
-      const mockOnClick = jest.fn();
+      const mockOnClick = vi.fn();
       
       render(<SettingsButton onClick={mockOnClick} />);
       
@@ -160,7 +160,7 @@ describe('Keyboard Navigation Tests', () => {
 
     test('Space key activates buttons', async () => {
       const user = userEvent.setup();
-      const mockOnToggle = jest.fn();
+      const mockOnToggle = vi.fn();
       const mockProps = {
         isRecording: false,
         isLoading: false,
@@ -179,12 +179,12 @@ describe('Keyboard Navigation Tests', () => {
 
     test('Enter key submits message in textarea', async () => {
       const user = userEvent.setup();
-      const mockOnSubmit = jest.fn();
+      const mockOnSubmit = vi.fn();
       const mockProps = {
         value: 'Test message',
-        onChange: jest.fn(),
+        onChange: vi.fn(),
         onSubmit: mockOnSubmit,
-        onToggleRecording: jest.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
         audioEnabled: true
@@ -201,13 +201,13 @@ describe('Keyboard Navigation Tests', () => {
 
     test('Shift+Enter creates new line in textarea', async () => {
       const user = userEvent.setup();
-      const mockOnChange = jest.fn();
-      const mockOnSubmit = jest.fn();
+      const mockOnChange = vi.fn();
+      const mockOnSubmit = vi.fn();
       const mockProps = {
         value: '',
         onChange: mockOnChange,
         onSubmit: mockOnSubmit,
-        onToggleRecording: jest.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
         audioEnabled: true
@@ -236,10 +236,10 @@ describe('Keyboard Navigation Tests', () => {
         autoScroll: true,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageList {...mockProps} />);
@@ -259,9 +259,9 @@ describe('Keyboard Navigation Tests', () => {
       const user = userEvent.setup();
       const mockProps = {
         value: 'Test message',
-        onChange: jest.fn(),
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        onChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
         audioEnabled: true
@@ -292,10 +292,10 @@ describe('Keyboard Navigation Tests', () => {
         autoScroll: true,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageList {...mockProps} />);
@@ -318,10 +318,10 @@ describe('Keyboard Navigation Tests', () => {
         autoScroll: true,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageList {...mockProps} />);
@@ -340,9 +340,9 @@ describe('Keyboard Navigation Tests', () => {
       const user = userEvent.setup();
       const mockProps = {
         value: 'This is a test message',
-        onChange: jest.fn(),
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        onChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
         audioEnabled: true
@@ -364,7 +364,7 @@ describe('Keyboard Navigation Tests', () => {
   describe('Escape Key Behavior', () => {
     test('Escape key stops recording', async () => {
       const user = userEvent.setup();
-      const mockOnToggle = jest.fn();
+      const mockOnToggle = vi.fn();
       const mockProps = {
         isRecording: true,
         isLoading: false,
@@ -391,10 +391,10 @@ describe('Keyboard Navigation Tests', () => {
         autoScroll: true,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageList {...mockProps} />);
@@ -457,12 +457,12 @@ describe('Keyboard Navigation Tests', () => {
 
     test('Focus returns to appropriate element after interactions', async () => {
       const user = userEvent.setup();
-      const mockOnSubmit = jest.fn();
+      const mockOnSubmit = vi.fn();
       const mockProps = {
         value: 'Test message',
-        onChange: jest.fn(),
+        onChange: vi.fn(),
         onSubmit: mockOnSubmit,
-        onToggleRecording: jest.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
         audioEnabled: true
@@ -492,10 +492,10 @@ describe('Keyboard Navigation Tests', () => {
         autoScroll: true,
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlayAudio: jest.fn(),
-        onPauseAudio: jest.fn(),
-        onResumeAudio: jest.fn(),
-        onStopAudio: jest.fn()
+        onPlayAudio: vi.fn(),
+        onPauseAudio: vi.fn(),
+        onResumeAudio: vi.fn(),
+        onStopAudio: vi.fn()
       };
 
       render(<MessageList {...mockProps} />);
@@ -515,12 +515,12 @@ describe('Keyboard Navigation Tests', () => {
 
     test('Keyboard shortcuts do not interfere with text input', async () => {
       const user = userEvent.setup();
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       const mockProps = {
         value: '',
         onChange: mockOnChange,
-        onSubmit: jest.fn(),
-        onToggleRecording: jest.fn(),
+        onSubmit: vi.fn(),
+        onToggleRecording: vi.fn(),
         isLoading: false,
         isRecording: false,
         audioEnabled: true
@@ -548,10 +548,10 @@ describe('Keyboard Navigation Tests', () => {
         text: 'Test message',
         audioState: mockAudioState,
         voiceSettings: mockVoiceSettings,
-        onPlay: jest.fn(),
-        onPause: jest.fn(),
-        onResume: jest.fn(),
-        onStop: jest.fn(),
+        onPlay: vi.fn(),
+        onPause: vi.fn(),
+        onResume: vi.fn(),
+        onStop: vi.fn(),
         messageId: '1'
       };
 
@@ -574,7 +574,7 @@ describe('Keyboard Navigation Tests', () => {
 
     test('Record button keyboard interaction', async () => {
       const user = userEvent.setup();
-      const mockOnToggle = jest.fn();
+      const mockOnToggle = vi.fn();
       const mockProps = {
         isRecording: false,
         isLoading: false,

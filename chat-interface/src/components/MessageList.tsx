@@ -92,7 +92,11 @@ export const MessageList: React.FC<MessageListProps> = ({
   // Smooth scroll to top function
   const scrollToTop = useCallback(() => {
     if (containerRef.current) {
-      containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      if (containerRef.current.scrollTo) {
+        containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        containerRef.current.scrollTop = 0;
+      }
     }
   }, []);
 
@@ -119,22 +123,38 @@ export const MessageList: React.FC<MessageListProps> = ({
           break;
         case 'PageUp':
           event.preventDefault();
-          containerRef.current.scrollBy({ top: -containerRef.current.clientHeight * 0.8, behavior: 'smooth' });
+          if (containerRef.current.scrollBy) {
+            containerRef.current.scrollBy({ top: -containerRef.current.clientHeight * 0.8, behavior: 'smooth' });
+          } else {
+            containerRef.current.scrollTop -= containerRef.current.clientHeight * 0.8;
+          }
           break;
         case 'PageDown':
           event.preventDefault();
-          containerRef.current.scrollBy({ top: containerRef.current.clientHeight * 0.8, behavior: 'smooth' });
+          if (containerRef.current.scrollBy) {
+            containerRef.current.scrollBy({ top: containerRef.current.clientHeight * 0.8, behavior: 'smooth' });
+          } else {
+            containerRef.current.scrollTop += containerRef.current.clientHeight * 0.8;
+          }
           break;
         case 'ArrowUp':
           if (event.ctrlKey || event.metaKey) {
             event.preventDefault();
-            containerRef.current.scrollBy({ top: -50, behavior: 'smooth' });
+            if (containerRef.current.scrollBy) {
+              containerRef.current.scrollBy({ top: -50, behavior: 'smooth' });
+            } else {
+              containerRef.current.scrollTop -= 50;
+            }
           }
           break;
         case 'ArrowDown':
           if (event.ctrlKey || event.metaKey) {
             event.preventDefault();
-            containerRef.current.scrollBy({ top: 50, behavior: 'smooth' });
+            if (containerRef.current.scrollBy) {
+              containerRef.current.scrollBy({ top: 50, behavior: 'smooth' });
+            } else {
+              containerRef.current.scrollTop += 50;
+            }
           }
           break;
       }

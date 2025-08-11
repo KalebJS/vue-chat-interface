@@ -6,10 +6,19 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:analyze": "npm run build && npx vite-bundle-analyzer dist",
+    "build:prod": "NODE_ENV=production npm run build",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "preview": "vite preview",
+    "preview:prod": "npm run build:prod && vite preview",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules/.vite",
+    "deploy:build": "npm run clean && npm run build:prod",
+    "serve": "npx serve dist -s -l 3000"
   },
   "dependencies": {
     "@langchain/anthropic": "^0.3.26",

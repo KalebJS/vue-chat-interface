@@ -26,7 +26,7 @@ describe('RecordButton', () => {
     it('renders record button with microphone icon when not recording', () => {
       render(<RecordButton {...defaultProps} />);
       
-      const button = screen.getByRole('button', { name: /start recording/i });
+      const button = screen.getByRole('button', { name: /start voice recording/i });
       expect(button).toBeInTheDocument();
       expect(button).toHaveClass('record-button');
       expect(button).not.toHaveClass('recording');
@@ -39,7 +39,7 @@ describe('RecordButton', () => {
     it('renders record button with stop icon when recording', () => {
       render(<RecordButton {...defaultProps} isRecording={true} />);
       
-      const button = screen.getByRole('button', { name: /stop recording/i });
+      const button = screen.getByRole('button', { name: /stop voice recording/i });
       expect(button).toBeInTheDocument();
       expect(button).toHaveClass('record-button', 'recording');
       
@@ -247,15 +247,15 @@ describe('RecordButton', () => {
     it('has correct aria-label when not recording', () => {
       render(<RecordButton {...defaultProps} />);
       
-      const button = screen.getByRole('button', { name: /start recording/i });
-      expect(button).toHaveAttribute('aria-label', 'Start recording');
+      const button = screen.getByRole('button', { name: /start voice recording/i });
+      expect(button).toHaveAttribute('aria-label', 'Start voice recording');
     });
 
     it('has correct aria-label when recording', () => {
       render(<RecordButton {...defaultProps} isRecording={true} />);
       
-      const button = screen.getByRole('button', { name: /stop recording/i });
-      expect(button).toHaveAttribute('aria-label', 'Stop recording');
+      const button = screen.getByRole('button', { name: /stop voice recording/i });
+      expect(button).toHaveAttribute('aria-label', 'Stop voice recording');
     });
 
     it('has correct title attribute when not recording', () => {

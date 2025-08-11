@@ -14,25 +14,25 @@ import {
 } from '../types';
 
 // Mock all services
-jest.mock('../services/NetworkErrorHandler');
-jest.mock('../services/LangChainService');
-jest.mock('../services/AudioController');
-jest.mock('../hooks/useStateManager');
+vi.mock('../services/NetworkErrorHandler');
+vi.mock('../services/LangChainService');
+vi.mock('../services/AudioController');
+vi.mock('../hooks/useStateManager');
 
-const mockNetworkErrorHandler = NetworkErrorHandler as jest.Mocked<typeof NetworkErrorHandler>;
-const mockLangChainService = LangChainService as jest.MockedClass<typeof LangChainService>;
-const mockAudioController = AudioController as jest.MockedClass<typeof AudioController>;
+const mockNetworkErrorHandler = NetworkErrorHandler as MockedFunction<typeof NetworkErrorHandler>;
+const mockLangChainService = LangChainService as MockedFunctionClass<typeof LangChainService>;
+const mockAudioController = AudioController as MockedFunctionClass<typeof AudioController>;
 
 // Mock useStateManager hook
-const mockUseStateManager = require('../hooks/useStateManager').useStateManager as jest.MockedFunction<any>;
+const mockUseStateManager = require('../hooks/useStateManager').useStateManager as MockedFunctionFunction<any>;
 
 // Mock console methods to avoid noise in tests
 const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
 
 beforeAll(() => {
-  console.error = jest.fn();
-  console.warn = jest.fn();
+  console.error = vi.fn();
+  console.warn = vi.fn();
 });
 
 afterAll(() => {
@@ -70,11 +70,11 @@ describe('Error Handling Integration', () => {
   };
 
   const mockActions = {
-    sendMessage: jest.fn(),
-    updateCurrentInput: jest.fn(),
-    updateError: jest.fn(),
-    updateAudioState: jest.fn(),
-    initializeLangChain: jest.fn()
+    sendMessage: vi.fn(),
+    updateCurrentInput: vi.fn(),
+    updateError: vi.fn(),
+    updateAudioState: vi.fn(),
+    initializeLangChain: vi.fn()
   };
 
   beforeEach(() => {
@@ -92,17 +92,17 @@ describe('Error Handling Integration', () => {
 
     // Mock AudioController
     const mockAudioControllerInstance = {
-      getState: jest.fn().mockReturnValue(mockState.audioState),
-      setStateChangeCallback: jest.fn(),
-      setTranscriptionCallback: jest.fn(),
-      destroy: jest.fn(),
-      startRecording: jest.fn(),
-      stopRecording: jest.fn(),
-      speakText: jest.fn(),
-      pauseSpeaking: jest.fn(),
-      resumeSpeaking: jest.fn(),
-      stopSpeaking: jest.fn(),
-      recoverFromError: jest.fn().mockResolvedValue(true)
+      getState: vi.fn().mockReturnValue(mockState.audioState),
+      setStateChangeCallback: vi.fn(),
+      setTranscriptionCallback: vi.fn(),
+      destroy: vi.fn(),
+      startRecording: vi.fn(),
+      stopRecording: vi.fn(),
+      speakText: vi.fn(),
+      pauseSpeaking: vi.fn(),
+      resumeSpeaking: vi.fn(),
+      stopSpeaking: vi.fn(),
+      recoverFromError: vi.fn().mockResolvedValue(true)
     };
 
     mockAudioController.mockImplementation(() => mockAudioControllerInstance as any);
@@ -264,10 +264,10 @@ describe('Error Handling Integration', () => {
 
     it('should handle audio initialization errors', () => {
       const mockAudioControllerInstance = {
-        getState: jest.fn().mockReturnValue(mockState.audioState),
-        setStateChangeCallback: jest.fn(),
-        setTranscriptionCallback: jest.fn(),
-        destroy: jest.fn()
+        getState: vi.fn().mockReturnValue(mockState.audioState),
+        setStateChangeCallback: vi.fn(),
+        setTranscriptionCallback: vi.fn(),
+        destroy: vi.fn()
       };
 
       mockAudioController.mockImplementation(() => {
@@ -294,11 +294,11 @@ describe('Error Handling Integration', () => {
       });
 
       const mockAudioControllerInstance = {
-        getState: jest.fn().mockReturnValue(audioErrorState.audioState),
-        setStateChangeCallback: jest.fn(),
-        setTranscriptionCallback: jest.fn(),
-        destroy: jest.fn(),
-        recoverFromError: jest.fn().mockResolvedValue(true)
+        getState: vi.fn().mockReturnValue(audioErrorState.audioState),
+        setStateChangeCallback: vi.fn(),
+        setTranscriptionCallback: vi.fn(),
+        destroy: vi.fn(),
+        recoverFromError: vi.fn().mockResolvedValue(true)
       };
 
       mockAudioController.mockImplementation(() => mockAudioControllerInstance as any);
@@ -328,11 +328,11 @@ describe('Error Handling Integration', () => {
       });
 
       const mockAudioControllerInstance = {
-        getState: jest.fn().mockReturnValue(audioErrorState.audioState),
-        setStateChangeCallback: jest.fn(),
-        setTranscriptionCallback: jest.fn(),
-        destroy: jest.fn(),
-        recoverFromError: jest.fn().mockResolvedValue(false)
+        getState: vi.fn().mockReturnValue(audioErrorState.audioState),
+        setStateChangeCallback: vi.fn(),
+        setTranscriptionCallback: vi.fn(),
+        destroy: vi.fn(),
+        recoverFromError: vi.fn().mockResolvedValue(false)
       };
 
       mockAudioController.mockImplementation(() => mockAudioControllerInstance as any);

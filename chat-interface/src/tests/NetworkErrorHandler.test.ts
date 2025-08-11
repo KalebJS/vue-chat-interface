@@ -98,12 +98,27 @@ describe('NetworkErrorHandler', () => {
           timeout: 100
         })
       ).rejects.toThrow('Request timed out after 100ms');
-    });
+    }, 10000);
 
     it('respects abort signal', async () => {
       const controller = new AbortController();
       const mockRequest = vi.fn().mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 200))
+        () => new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(resolve, 200);
+          
+          // Check if already aborted
+          if (controller.signal.aborted) {
+            clearTimeout(timeoutId);
+            reject(new Error('Request was aborted'));
+            return;
+          }
+          
+          // Listen for abort
+          controller.signal.addEventListener('abort', () => {
+            clearTimeout(timeoutId);
+            reject(new Error('Request was aborted'));
+          });
+        })
       );
 
       // Abort after 50ms

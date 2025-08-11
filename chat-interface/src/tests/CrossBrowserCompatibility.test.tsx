@@ -72,9 +72,9 @@ describe('Cross-Browser Compatibility Tests', () => {
 
       // Remove Speech Recognition APIs
       // @ts-ignore
-      delete window.SpeechRecognition;
+      window.SpeechRecognition = undefined;
       // @ts-ignore
-      delete window.webkitSpeechRecognition;
+      window.webkitSpeechRecognition = undefined;
 
       render(<ChatInterface />);
 
@@ -278,11 +278,11 @@ describe('Cross-Browser Compatibility Tests', () => {
 
       // IE11 doesn't support Speech APIs
       // @ts-ignore
-      delete window.SpeechRecognition;
+      window.SpeechRecognition = undefined;
       // @ts-ignore
-      delete window.webkitSpeechRecognition;
+      window.webkitSpeechRecognition = undefined;
       // @ts-ignore
-      delete window.speechSynthesis;
+      window.speechSynthesis = undefined;
 
       render(<ChatInterface />);
 
@@ -348,9 +348,9 @@ describe('Cross-Browser Compatibility Tests', () => {
     it('should progressively enhance interface based on available features', async () => {
       // Start with no speech support
       // @ts-ignore
-      delete window.SpeechRecognition;
+      window.SpeechRecognition = undefined;
       // @ts-ignore
-      delete window.webkitSpeechRecognition;
+      window.webkitSpeechRecognition = undefined;
 
       const { rerender } = render(<ChatInterface />);
 
@@ -386,7 +386,7 @@ describe('Cross-Browser Compatibility Tests', () => {
       }));
 
       // @ts-ignore
-      delete window.speechSynthesis;
+      window.speechSynthesis = undefined;
 
       render(<ChatInterface />);
 
