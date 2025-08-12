@@ -10,7 +10,7 @@ import {
 } from "../hooks/useStateManager";
 import { StateManager } from "../services/StateManager";
 import { LangChainService } from "../services/LangChainService";
-import { MessageStatus, ModelProvider } from "../types";
+import { ChainType, MemoryType, MessageStatus, ModelProvider } from "../types";
 
 // Mock the services
 vi.mock("../services/StateManager");
@@ -87,12 +87,12 @@ describe("useStateManager", () => {
                         maxTokens: 1000,
                     },
                     memory: {
-                        type: "buffer" as const,
+                        type: MemoryType.BUFFER,
                         maxTokenLimit: 2000,
                         returnMessages: true,
                     },
                     chain: {
-                        type: "conversation" as const,
+                        type: ChainType.CONVERSATION,
                         verbose: false,
                     },
                 },

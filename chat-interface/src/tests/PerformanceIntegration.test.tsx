@@ -56,7 +56,6 @@ describe("Performance Integration Tests", () => {
                 audioState: {
                     isRecording: false,
                     isPlaying: false,
-                    isPaused: false,
                     isSupported: true,
                     hasPermission: true,
                 },
@@ -107,7 +106,6 @@ describe("Performance Integration Tests", () => {
             getState: vi.fn().mockReturnValue({
                 isRecording: false,
                 isPlaying: false,
-                isPaused: false,
                 isSupported: true,
                 hasPermission: true,
             }),
@@ -379,31 +377,33 @@ describe("Performance Integration Tests", () => {
     describe("Streaming Performance", () => {
         it("should handle high-frequency streaming updates efficiently", async () => {
             // Mock high-frequency streaming
-            mockLangChainService.sendMessageStreaming.mockImplementation(async (message, options) => {
-                const response =
-                    "This is a very long streaming response that will be sent token by token to test the performance of the streaming implementation. ".repeat(
-                        20,
-                    );
-                const tokens = response.split(" ");
+            mockLangChainService.sendMessageStreaming.mockImplementation(
+                async (options: { onToken: (arg0: string) => void; onComplete: (arg0: string) => void }) => {
+                    const response =
+                        "This is a very long streaming response that will be sent token by token to test the performance of the streaming implementation. ".repeat(
+                            20,
+                        );
+                    const tokens = response.split(" ");
 
-                const startTime = performance.now();
+                    const startTime = performance.now();
 
-                for (let i = 0; i < tokens.length; i++) {
-                    const token = i === 0 ? tokens[i] : " " + tokens[i];
-                    options.onToken?.(token);
+                    for (let i = 0; i < tokens.length; i++) {
+                        const token = i === 0 ? tokens[i] : " " + tokens[i];
+                        options.onToken?.(token);
 
-                    // High frequency updates (every 1ms)
-                    await new Promise((resolve) => setTimeout(resolve, 1));
-                }
+                        // High frequency updates (every 1ms)
+                        await new Promise((resolve) => setTimeout(resolve, 1));
+                    }
 
-                const streamingTime = performance.now() - startTime;
+                    const streamingTime = performance.now() - startTime;
 
-                // Should handle high-frequency updates efficiently
-                expect(streamingTime).toBeLessThan(tokens.length * 5); // Max 5ms per token
+                    // Should handle high-frequency updates efficiently
+                    expect(streamingTime).toBeLessThan(tokens.length * 5); // Max 5ms per token
 
-                options.onComplete?.(response);
-                return response;
-            });
+                    options.onComplete?.(response);
+                    return response;
+                },
+            );
 
             render(<ChatInterface />);
 
@@ -424,19 +424,21 @@ describe("Performance Integration Tests", () => {
 
             for (let i = 0; i < 5; i++) {
                 const promise = new Promise((resolve) => {
-                    mockLangChainService.sendMessageStreaming.mockImplementationOnce(async (message, options) => {
-                        const response = `Concurrent stream ${i}`;
-                        const tokens = response.split(" ");
+                    mockLangChainService.sendMessageStreaming.mockImplementationOnce(
+                        async (options: { onToken: (arg0: string) => void; onComplete: (arg0: string) => void }) => {
+                            const response = `Concurrent stream ${i}`;
+                            const tokens = response.split(" ");
 
-                        for (const token of tokens) {
-                            options.onToken?.(token);
-                            await new Promise((r) => setTimeout(r, 10));
-                        }
+                            for (const token of tokens) {
+                                options.onToken?.(token);
+                                await new Promise((r) => setTimeout(r, 10));
+                            }
 
-                        options.onComplete?.(response);
-                        resolve(response);
-                        return response;
-                    });
+                            options.onComplete?.(response);
+                            resolve(response);
+                            return response;
+                        },
+                    );
                 });
 
                 streamingPromises.push(promise);
@@ -468,22 +470,24 @@ describe("Performance Integration Tests", () => {
 
         it("should maintain UI responsiveness during streaming", async () => {
             // Mock long streaming response
-            mockLangChainService.sendMessageStreaming.mockImplementation(async (message, options) => {
-                const longResponse = "Token ".repeat(1000);
-                const tokens = longResponse.split(" ");
+            mockLangChainService.sendMessageStreaming.mockImplementation(
+                async (options: { onToken: (arg0: string) => void; onComplete: (arg0: string) => void }) => {
+                    const longResponse = "Token ".repeat(1000);
+                    const tokens = longResponse.split(" ");
 
-                for (const token of tokens) {
-                    options.onToken?.(token);
+                    for (const token of tokens) {
+                        options.onToken?.(token);
 
-                    // Yield control to prevent blocking
-                    if (tokens.indexOf(token) % 50 === 0) {
-                        await new Promise((resolve) => setTimeout(resolve, 0));
+                        // Yield control to prevent blocking
+                        if (tokens.indexOf(token) % 50 === 0) {
+                            await new Promise((resolve) => setTimeout(resolve, 0));
+                        }
                     }
-                }
 
-                options.onComplete?.(longResponse);
-                return longResponse;
-            });
+                    options.onComplete?.(longResponse);
+                    return longResponse;
+                },
+            );
 
             render(<ChatInterface />);
 
@@ -535,7 +539,6 @@ describe("Performance Integration Tests", () => {
                         audioCallback({
                             isRecording: true,
                             isPlaying: false,
-                            isPaused: false,
                             isSupported: true,
                             hasPermission: true,
                         });
@@ -591,7 +594,7 @@ describe("Performance Integration Tests", () => {
     describe("Network Performance", () => {
         it("should handle network latency gracefully", async () => {
             // Mock slow network responses
-            mockStateManager.sendMessage.mockImplementation(async (message) => {
+            mockStateManager.sendMessage.mockImplementation(async () => {
                 await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 second delay
                 return "Delayed response";
             });

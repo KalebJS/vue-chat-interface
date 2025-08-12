@@ -6,7 +6,7 @@ import { LazyAudioController } from "../services/LazyAudioController";
 import { LazyLangChainService } from "../services/LazyLangChainService";
 import { performanceMonitor } from "../utils/performance";
 import type { Message, AudioState, VoiceSettings } from "../types";
-import { MessageStatus } from "../types";
+import { ChainType, MemoryType, MessageStatus, ModelProvider } from "../types";
 
 // Mock performance API
 const mockPerformance = {
@@ -266,17 +266,17 @@ describe("Performance Optimizations", () => {
     describe("LazyLangChainService", () => {
         const mockConfig = {
             model: {
-                provider: "openai" as const,
+                provider: ModelProvider.OPENAI,
                 modelName: "gpt-3.5-turbo",
                 temperature: 0.7,
                 maxTokens: 1000,
             },
             memory: {
-                type: "buffer" as const,
+                type: MemoryType.BUFFER,
                 returnMessages: true,
             },
             chain: {
-                type: "conversation" as const,
+                type: ChainType.CONVERSATION,
                 verbose: false,
             },
         };

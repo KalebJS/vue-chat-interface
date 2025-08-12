@@ -59,7 +59,6 @@ describe("Comprehensive Integration Tests", () => {
             getState: vi.fn().mockReturnValue({
                 isRecording: false,
                 isPlaying: false,
-                isPaused: false,
                 isSupported: true,
                 hasPermission: true,
                 error: undefined,
@@ -85,7 +84,6 @@ describe("Comprehensive Integration Tests", () => {
                 audioState: {
                     isRecording: false,
                     isPlaying: false,
-                    isPaused: false,
                     isSupported: true,
                     hasPermission: true,
                     error: undefined,
@@ -856,7 +854,6 @@ describe("Error Recovery and Graceful Degradation Scenarios", () => {
         mockAudioController.getState.mockReturnValue({
             isRecording: false,
             isPlaying: false,
-            isPaused: false,
             isSupported: false,
             hasPermission: false,
             error: "Audio system unavailable",
@@ -867,7 +864,6 @@ describe("Error Recovery and Graceful Degradation Scenarios", () => {
             audioState: {
                 isRecording: false,
                 isPlaying: false,
-                isPaused: false,
                 isSupported: false,
                 hasPermission: false,
                 error: "Audio system unavailable",
@@ -903,7 +899,6 @@ describe("Error Recovery and Graceful Degradation Scenarios", () => {
         mockAudioController.getState.mockReturnValue({
             isRecording: false,
             isPlaying: false,
-            isPaused: false,
             isSupported: true,
             hasPermission: true,
             error: "Text-to-speech unavailable",
@@ -914,7 +909,6 @@ describe("Error Recovery and Graceful Degradation Scenarios", () => {
             audioState: {
                 isRecording: false,
                 isPlaying: false,
-                isPaused: false,
                 isSupported: true,
                 hasPermission: true,
                 error: "Text-to-speech unavailable",
@@ -1021,7 +1015,6 @@ describe("Error Recovery and Graceful Degradation Scenarios", () => {
             audioState: {
                 isRecording: false,
                 isPlaying: false,
-                isPaused: false,
                 isSupported: false,
                 hasPermission: false,
                 error: "Audio system failed",

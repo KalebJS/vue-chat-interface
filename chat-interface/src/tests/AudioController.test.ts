@@ -122,7 +122,6 @@ describe("AudioController", () => {
             expect(state.isSupported).toBe(true);
             expect(state.isRecording).toBe(false);
             expect(state.isPlaying).toBe(false);
-            expect(state.isPaused).toBe(false);
             expect(state.hasPermission).toBe(false);
         });
 
@@ -451,7 +450,6 @@ describe("AudioController", () => {
 
             const state = audioController.getState();
             expect(state.isPlaying).toBe(false);
-            expect(state.isPaused).toBe(true);
         });
 
         it("should resume paused speech synthesis", async () => {
@@ -475,7 +473,6 @@ describe("AudioController", () => {
 
             const state = audioController.getState();
             expect(state.isPlaying).toBe(true);
-            expect(state.isPaused).toBe(false);
         });
 
         it("should not pause if not playing", () => {

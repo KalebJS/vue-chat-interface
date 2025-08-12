@@ -188,7 +188,6 @@ export const isAudioState = (obj: any): obj is AudioState => {
         obj !== null &&
         typeof obj.isRecording === "boolean" &&
         typeof obj.isPlaying === "boolean" &&
-        typeof obj.isPaused === "boolean" &&
         typeof obj.isSupported === "boolean" &&
         typeof obj.hasPermission === "boolean"
     );
